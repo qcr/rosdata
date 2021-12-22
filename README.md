@@ -119,7 +119,7 @@ topic_<id>:
         output_destination: <relative_destination> # optional - used to specify a directory relative to the root output directory to save the CSV file. Defaults to the root output directory.
 ```
 
-A complete example, including all optional parameters:
+A complete example:
 
 ```yaml
 transform_0:
