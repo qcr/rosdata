@@ -123,43 +123,35 @@ A complete example, including all optional parameters:
 
 ```yaml
 transform_0:
-    parent_frame: map
-    child_frame: base_link
-    filename: poses
-    output_destination: data_files
+  parent_frame: map
+  child_frame: base_link
+  output_destination: data_files
+  filename: poses
 
 camera_info_0:
-    topic_name: /camera/camera_info
-    filename: camera_info
-    output_destination: data_files
+  topic_name: /pylon_camera_node/camera_info
+  filename: camera_info
+  output_destination: data_files
 
 topic_0:
-  topic_name: /points_velodyne
+  topic_name: /os1_cloud_node/points
   message_type: sensor_msgs/PointCloud2
-  filename_template: image_%06d-<ros_timestamp>
-  output_destination: images/images
+  filename_template: pcd_%06d-<ros_timestamp>
+  output_destination: pointclouds
   transform:
-    parent_frame: ardupilot_local
-    child_frame: velodyne
+    parent_frame: map
+    child_frame: ouster1/os1_lidar
     selection_method: interpolate
-    lookup_limit: Null
-    chain_limit: Null
+    lookup_limit: 0.5
+    chain_limit: 1.0
     filename: pointclouds
     output_destination: data_files
 
 topic_1:
-  topic_name: /camera_array/cam0/image_raw/compressed
-  message_type: sensor_msgs/CompressedImage
+  topic_name: /pylon_camera_node/image_raw
+  message_type: sensor_msgs/Image
   filename_template: image_%06d-<ros_timestamp>
-  output_destination: images/images
-  transform:
-    parent_frame: ardupilot_local
-    child_frame: camera
-    selection_method: interpolate
-    lookup_limit: 0.5
-    chain_limit: 1.0
-    filename: images
-    output_destination: data_files
+  output_destination: images
 ```
 
 ## Acknowledgments

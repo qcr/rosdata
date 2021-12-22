@@ -348,7 +348,7 @@ class ROSBagExtractor:
                 pcd_filename = (filename_template%(idx)).replace("<ros_timestamp>", timestamp_str) + ".ply"
 
                 # Decode and save the point cloud
-                # o3d_pcd = orh.rospc_to_o3dpc(msg)
+                # o3d_pcd = orh.rospc_to_o3dpc(msg) this throws an error message, not sure why haven't dug into it
                 o3d_pcd = rospc_to_o3dpc(msg)
                 o3d.io.write_point_cloud(str(output_dir / pcd_filename), o3d_pcd) 
 
@@ -435,6 +435,11 @@ class ROSBagExtractor:
 
 ### HELPER FUNCTIONS ###
 import ros_numpy
+
+# the function rospc_to_o3dpc in the open3d_ros_helper 
+# module throws an error for some reason. Here is a direct 
+# copy of the function, and no error is thrown.
+
 def rospc_to_o3dpc(rospc, remove_nans=False):
     """ covert ros point cloud to open3d point cloud
     Args: 

@@ -26,13 +26,13 @@ class Status(Enum):
 
 class TransformData:
 
-    def __init__(self, timestamp : rospy.rostime.Time, pose : Transform):
+    def __init__(self, timestamp : rospy.rostime.Time, transform : Transform):
         
         self.timestamp = timestamp.to_sec()
 
         # set transform using spatial maths library
-        self.transform = sm.SE3([pose.translation.x, pose.translation.y, pose.translation.z])
-        self.transform.A[:3, :3] = sm.base.q2r([pose.rotation.w, pose.rotation.x, pose.rotation.y, pose.rotation.z])
+        self.transform = sm.SE3([transform.translation.x, transform.translation.y, transform.translation.z])
+        self.transform.A[:3, :3] = sm.base.q2r([transform.rotation.w, transform.rotation.x, transform.rotation.y, transform.rotation.z])
 
 
 class Transforms(object):
@@ -118,6 +118,7 @@ class ROSBagTransformer:
             static_transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf_static".
         """
 
+
         # Loop through all tf and static tf messages and get all frames that have children,
         # store data as dictionary in self._frame_dict
         total_time = int(self._bag.get_end_time() - self._bag.get_start_time())
@@ -132,29 +133,33 @@ class ROSBagTransformer:
                 else:
                     pbar.update(0)
 
-                # get parent and child frame and if it's a static or dynamic transform topic
-                msg = msg.transforms[0]
-                parent_frame = msg.header.frame_id.strip("/")
-                child_frame = msg.child_frame_id.strip("/")
+                # check whether it is a static transform
                 static_transform = topic == static_transform_topic
 
-                # add parent frame as a key the dict if it does not exist
-                if parent_frame not in self._frames_dict.keys():
-                    self._frames_dict[parent_frame] = []
+                # loop through all transforms in message
+                for transform in msg.transforms:
 
-                # add child as a value to parent if it does not exist
-                if child_frame not in self._frames_dict[parent_frame]:
-                    self._frames_dict[parent_frame].append(child_frame)
+                    # get parent and child frame
+                    parent_frame = transform.header.frame_id.strip("/")
+                    child_frame = transform.child_frame_id.strip("/")
 
-                # add child as key to transform dictionary if it doesn't exist
-                if child_frame not in self._transforms.keys():
-                    self._transforms[child_frame] = Transforms(parent_frame, child_frame, static_transform)
+                    # add parent frame as a key the dict if it does not exist
+                    if parent_frame not in self._frames_dict.keys():
+                        self._frames_dict[parent_frame] = []
 
-                # add the transform to the transforms object associated with this child frame
-                self._transforms[child_frame].add_transform(t, msg.transform)
+                    # add child as a value to parent if it does not exist
+                    if child_frame not in self._frames_dict[parent_frame]:
+                        self._frames_dict[parent_frame].append(child_frame)
 
-                # add the transform to the list of all transforms
-                self._all_transforms.append([[parent_frame, child_frame], t.to_sec(), self._transforms[child_frame].transforms[-1]])
+                    # add child as key to transform dictionary if it doesn't exist
+                    if child_frame not in self._transforms.keys():
+                        self._transforms[child_frame] = Transforms(parent_frame, child_frame, static_transform)
+
+                    # add the transform to the transforms object associated with this child frame
+                    self._transforms[child_frame].add_transform(t, transform.transform)
+
+                    # add the transform to the list of all transforms
+                    self._all_transforms.append([[parent_frame, child_frame], t.to_sec(), self._transforms[child_frame].transforms[-1]])
 
         # sort all transforms into time order
         self._all_transforms = sorted(self._all_transforms, key=lambda x: x[1])
