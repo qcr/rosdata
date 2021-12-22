@@ -12,14 +12,14 @@ camera_info_0:
 topic_0:
   topic_name: /os1_cloud_node/points
   message_type: sensor_msgs/PointCloud2
-  filename_template: image_%06d-<ros_timestamp>
-  output_destination: images
+  filename_template: pcd_%06d-<ros_timestamp>
+  output_destination: pointclouds
   transform:
     parent_frame: map
-    child_frame: os1_lidar
+    child_frame: ouster1/os1_lidar
     selection_method: interpolate
-    lookup_limit: Null
-    chain_limit: Null
+    lookup_limit: 0.5
+    chain_limit: 1.0
     filename: pointclouds
     output_destination: data_files
 
@@ -28,11 +28,3 @@ topic_1:
   message_type: sensor_msgs/Image
   filename_template: image_%06d-<ros_timestamp>
   output_destination: images
-  transform:
-    parent_frame: map
-    child_frame: pylon_camera
-    selection_method: interpolate
-    lookup_limit: Null
-    chain_limit: Null
-    filename: images
-    output_destination: data_files
