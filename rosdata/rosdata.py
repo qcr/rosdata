@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 ### IMPORT MODULES ###
+import sys
 import yaml
 import rosbag
 import pathlib
@@ -21,12 +22,12 @@ def extract_rosbag_data(bag_path : pathlib.Path, extraction_config_path : pathli
     if root_output_dir.exists():
         if yes_or_no("Data already exists at %s. Would you like to overwrite existing data"%(root_output_dir)):
             rmdir(root_output_dir)
-        else:
-            print("Exiting program.")
-            sys.exit(0)
+        # else:
+        #     print("Exiting program.")
+        #     sys.exit(0)
 
     # create directory
-    root_output_dir.mkdir(parents=True)
+    root_output_dir.mkdir(parents=True, exist_ok=True)
     
 
     # Open the ROS bag file

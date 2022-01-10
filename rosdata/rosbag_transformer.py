@@ -90,6 +90,13 @@ class ROSBagTransformer:
         self._transforms_tree = treelib.Tree()
         self._transforms = {}
         self._all_transforms = []
+
+        # Following variables are used to store information from most recent self.lookup_transform call,
+        # to increase following call
+        self._previous_lookup_transforms_parent = None
+        self._previous_lookup_transforms_child = None
+        self._transforms_list = None
+        self._static_transform_chain = None
         
 
     def build_transform_tree(self, transform_topic : str = "/tf", static_transform_topic : str ="/tf_static"):
@@ -404,18 +411,18 @@ class ROSBagTransformer:
         """
 
         # get the transform list for the specified chain
-        transform_list, static_transform_chain = self.lookup_transforms(parent, child)
+        if parent != self._previous_lookup_transforms_parent or child != self._previous_lookup_transforms_child:
+            # convert the list to a numpy array
+            self._transforms_list, self._static_transform_chain = self.lookup_transforms(parent, child)
+            self._transforms_list = transform_list = np.asarray(transform_list, dtype=object)
 
         # if entire transform chain is static, transform never changes
-        if static_transform_chain:
+        if self._static_transform_chain:
             # return desired time, chain differential of 0.0, transform and success
-            time, 0.0, transform_list[0][2], Status.SUCCESS
-
-        # convert the list to a numpy array
-        transform_list = np.asarray(transform_list, dtype=object)
+            time, 0.0, self._transforms_list[0][2], Status.SUCCESS        
 
         # get time difference between the list and desired time
-        time_diff = transform_list[:,0] - time
+        time_diff = self._transforms_list[:,0] - time
         
         # outcome depends on method
         if method.lower() == "exact":
@@ -425,9 +432,9 @@ class ROSBagTransformer:
             
             # get the timestamp, chain differential and transform
             selected_idx = np.argmin(np.abs(time_diff))
-            timestamp = transform_list[selected_idx][0]
-            chain_dif = transform_list[selected_idx][1]
-            transform = transform_list[selected_idx][2]   
+            timestamp = self._transforms_list[selected_idx][0]
+            chain_dif = self._transforms_list[selected_idx][1]
+            transform = self._transforms_list[selected_idx][2]   
 
         elif method.lower() == "recent":
             if np.all(time_diff > 0):
@@ -436,16 +443,16 @@ class ROSBagTransformer:
             
             # get the timestamp, chain differential and transform
             selected_idx = np.argmax(time_diff[time_diff <= 0])
-            timestamp = transform_list[selected_idx][0]
-            chain_dif = transform_list[selected_idx][1]
-            transform = transform_list[selected_idx][2] 
+            timestamp = self._transforms_list[selected_idx][0]
+            chain_dif = self._transforms_list[selected_idx][1]
+            transform = self._transforms_list[selected_idx][2] 
 
         elif method.lower() == "nearest":
             # get the timestamp, chain differential and transform
             selected_idx = np.argmin(np.abs(time_diff))
-            timestamp = transform_list[selected_idx][0]
-            chain_dif = transform_list[selected_idx][1]
-            transform = transform_list[selected_idx][2]  
+            timestamp = self._transforms_list[selected_idx][0]
+            chain_dif = self._transforms_list[selected_idx][1]
+            transform = self._transforms_list[selected_idx][2]  
 
         elif method.lower() == "interpolate":
             if np.all(time_diff < 0) or np.all(time_diff > 0):
@@ -462,16 +469,16 @@ class ROSBagTransformer:
 
             # get where the desired timestamp is between the two transform points in the range 0 to 1
             # use numpy interp function for this
-            point = np.interp(time, [transform_list[negative_idx][0], transform_list[positive_idx][0]], [0.0, 1.0])
+            point = np.interp(time, [self._transforms_list[negative_idx][0], self._transforms_list[positive_idx][0]], [0.0, 1.0])
             
             # interpolate the position
-            transform = transform_list[negative_idx][2].interp(transform_list[positive_idx][2], point)
+            transform = self._transforms_list[negative_idx][2].interp(self._transforms_list[positive_idx][2], point)
 
             # set timestamp, to be the desired time
             timestamp = time
 
             # chain differential set to maximum of the two
-            chain_dif = max(transform_list[negative_idx][1], transform_list[positive_idx][1])
+            chain_dif = max(self._transforms_list[negative_idx][1], self._transforms_list[positive_idx][1])
         
         else:
             return None, None, None, Status.UNKNOWN_METHOD

@@ -4,6 +4,8 @@
 import sys
 import csv
 import yaml
+import dill
+# import pickle as dill
 import pathlib
 import numpy as np
 # from enum import Enum
@@ -20,6 +22,11 @@ from cv_bridge import CvBridge, CvBridgeError
 
 from .rosbag_transformer import ROSBagTransformer
 
+
+from enum import IntEnum
+class StateKeys(IntEnum):
+    CleanState = 0
+    TransformTreeBuilt = 1
 
 ### ROSBAG EXTRACTOR CLASS ###
 class ROSBagExtractor:
@@ -39,21 +46,28 @@ class ROSBagExtractor:
         self.bag = bag
         self.extraction_config = extraction_config
         self.root_output_dir = pathlib.Path(root_output_dir)
-
         self.bag_transformer = ROSBagTransformer(bag) # an object containing of all the transforms
 
+        # Variables used for storing bag transformer object between executions
+        self._bag_transformer_file = self.root_output_dir / "extraction_statefile.pickle"
 
-    def extract_data(self, transform_topic : str="/tf", static_transform_topic : str="/tf_static"):
+
+    def extract_data(self, transform_topic : str="/tf", static_transform_topic : str="/tf_static", save_progress : bool = True):
         """Extracts the data from the ROSBag.
 
         Args:
             transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf".
             static_transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf_static".
+            save_progress (bool, optional): used to specify if wish to save progress as a pickle file to the root output directory. Defaults to true.
         """
        
         # Pre-process bag transforms
         print("Processing the transforms")
-        self.bag_transformer.build_transform_tree(transform_topic, static_transform_topic)
+        if not self._bag_transformer_file.exists():
+            self.bag_transformer.build_transform_tree(transform_topic, static_transform_topic)
+            self._save_bag_transformer()
+        else:
+            self._load_bag_transformer()
 
         # Extract dynamic transform data
         print("Extracting Transform Data")
@@ -69,6 +83,23 @@ class ROSBagExtractor:
 
         print("\nROSBag Extraction Complete")
         
+
+    def _save_bag_transformer(self):
+        # Go pickle yourself
+        with open(self._bag_transformer_file, 'wb') as f:
+            dill.dump(self.bag_transformer, f)
+            f.close()
+
+    def _load_bag_transformer(self):
+        # Only load if exists
+        if not self._bag_transformer_file.exists():
+            return
+
+        # Open data
+        with open(self._bag_transformer_file, 'rb') as f:
+            self.bag_transformer = dill.load(f) 
+            f.close()
+
 
     def _extract_dynamic_transform_data(self):
         """Extracts the dynamic transforms from the ROSBag. 
@@ -113,7 +144,6 @@ class ROSBagExtractor:
                     csvwriter.writerow([parent_frame, child_frame, transform[0], 
                     position[0], position[1], position[2], 
                     quat[0], quat[1], quat[2], quat[3]])
-
 
     def _extract_camera_info(self):
         """Extracts the camera info data from the ROSBag.
@@ -180,6 +210,7 @@ class ROSBagExtractor:
 
             # output transform list if required
             if "transform" in self.extraction_config[topic_key].keys():
+                print("\tWriting out transform file for topic %s"%(self.extraction_config[topic_key]['topic_name']))
                 self._write_topic_transform_file(topic_key, topic_frame_id, filelist, output_dir)
                 
 
@@ -394,7 +425,7 @@ class ROSBagExtractor:
 
         # get transform for each
         filelist_with_pose = []
-        for frame in filelist:
+        for frame in tqdm(filelist):
             timestamp, chain_differential, transform, status = self.bag_transformer.lookup_transform(parent_frame, child_frame, frame[1],
                 method=method, lookup_limit=lookup_limit, chain_limit=chain_limit)
             filelist_with_pose.append([frame[0], timestamp, transform, status])
@@ -419,6 +450,7 @@ class ROSBagExtractor:
             # Write transform list
             for data in filelist_with_pose:
                 if type(data[2]) == sm.pose3d.SE3: # make sure transform isn't none
+                    print(data)
                     timestamp = data[1]
                     position = data[2].A[:3, -1]
                     quat = sm.base.r2q(data[2].A[:3,:3])
