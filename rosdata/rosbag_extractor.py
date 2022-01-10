@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 ### IMPORT MODULES ###
-import sys
+import os
+# import sys
 import csv
 import yaml
 import dill
@@ -28,6 +29,11 @@ class StateKeys(IntEnum):
     CleanState = 0
     TransformTreeBuilt = 1
 
+class ExtractionKey(IntEnum):
+    NoExtraction = 0
+    Data = 1
+    DataAndTransforms = 2
+
 ### ROSBAG EXTRACTOR CLASS ###
 class ROSBagExtractor:
     """
@@ -46,10 +52,14 @@ class ROSBagExtractor:
         self.bag = bag
         self.extraction_config = extraction_config
         self.root_output_dir = pathlib.Path(root_output_dir)
-        self.bag_transformer = ROSBagTransformer(bag) # an object containing of all the transforms
+        self.bag_transformer = ROSBagTransformer() # an object containing of all the transforms
 
-        # Variables used for storing bag transformer object between executions
-        self._bag_transformer_file = self.root_output_dir / "extraction_statefile.pickle"
+        # Variables used to continue from previous execution
+        self._extraction_state = {}
+        self._extraction_data = {}
+
+        # Load existing extraction progress
+        self._load()
 
 
     def extract_data(self, transform_topic : str="/tf", static_transform_topic : str="/tf_static", save_progress : bool = True):
@@ -61,13 +71,16 @@ class ROSBagExtractor:
             save_progress (bool, optional): used to specify if wish to save progress as a pickle file to the root output directory. Defaults to true.
         """
        
-        # Pre-process bag transforms
-        print("Processing the transforms")
-        if not self._bag_transformer_file.exists():
-            self.bag_transformer.build_transform_tree(transform_topic, static_transform_topic)
-            self._save_bag_transformer()
+        # Pre-process bag transforms or load existing bag transformer object
+        bag_transformer_file = self.root_output_dir / "bag_transformer.pickle"
+        if not bag_transformer_file.exists():
+            print("Processing the transforms")
+            self.bag_transformer.build_transform_tree(self.bag, transform_topic, static_transform_topic)
+            if save_progress:
+                self.bag_transformer.save(bag_transformer_file)
         else:
-            self._load_bag_transformer()
+            print("Loading existing bag transformer")
+            self.bag_transformer.load(bag_transformer_file)
 
         # Extract dynamic transform data
         print("Extracting Transform Data")
@@ -84,25 +97,34 @@ class ROSBagExtractor:
         print("\nROSBag Extraction Complete")
         
 
-    def _save_bag_transformer(self):
-        # Go pickle yourself
-        with open(self._bag_transformer_file, 'wb') as f:
-            dill.dump(self.bag_transformer, f)
+    def _save(self):
+        # Get the variables/data wish to save
+        data = {key: self.__dict__[key] for key in ["_extraction_state", "_extraction_data"]}
+
+        # Go pickle the data
+        filename = self.root_output_dir / "extraction_state.pickle"
+        with open(filename, 'wb') as f:
+            dill.dump(data, f)
             f.close()
 
-    def _load_bag_transformer(self):
+    def _load(self):
         # Only load if exists
-        if not self._bag_transformer_file.exists():
+        filename = self.root_output_dir / "extraction_state.pickle"
+        if not filename.exists():
             return
 
         # Open data
-        with open(self._bag_transformer_file, 'rb') as f:
-            self.bag_transformer = dill.load(f) 
+        with open(filename, 'rb') as f:
+            tmp_dict = dill.load(f) 
             f.close()
+
+        # Update dictionary
+        self.__dict__.update(tmp_dict)
 
 
     def _extract_dynamic_transform_data(self):
-        """Extracts the dynamic transforms from the ROSBag. 
+        """Extracts the dynamic transforms from the ROSBag. The data is saved as a CSV file at the location
+            defined in the extraction config file. 
         """
 
         # Loop through all "transform_<number>" keys in the extraction config dictionary
@@ -114,6 +136,14 @@ class ROSBagExtractor:
             parent_frame = self.extraction_config[transform_key]["parent_frame"]
             child_frame = self.extraction_config[transform_key]["child_frame"]
 
+            # check if this data has been extracted in previous run
+            state_key = "%s to %s"%(parent_frame, child_frame)
+            if state_key in self._extraction_state and self._extraction_state[state_key] == self.extraction_config[transform_key]:
+                # has previously been extracted, and with the same config, do not extract data again
+                print("\tIgnoring extraction of the %s to %s transform list. It has previously been extracted"%(parent_frame, child_frame))
+                continue
+
+            # continue with extraction
             print("\tExtracting %s to %s transform list"%(parent_frame, child_frame))
 
             # set output destination and filename
@@ -127,7 +157,7 @@ class ROSBagExtractor:
                 output_dir.mkdir(parents=True, exist_ok=True)
             
             # look up when transform updates
-            transform_list, static_transform_chain = self.bag_transformer.lookup_transforms(parent_frame, child_frame)
+            transform_list, _ = self.bag_transformer.lookup_transforms(parent_frame, child_frame)
 
             # open csv file
             with open(output_dir / filename, 'w', newline='') as csvfile:
@@ -145,6 +175,11 @@ class ROSBagExtractor:
                     position[0], position[1], position[2], 
                     quat[0], quat[1], quat[2], quat[3]])
 
+            # update extraction state and save
+            self._extraction_state[state_key] = self.extraction_config[transform_key].copy()
+            self._save()
+
+    
     def _extract_camera_info(self):
         """Extracts the camera info data from the ROSBag.
         """
@@ -156,6 +191,13 @@ class ROSBagExtractor:
             # get camera info topic
             camera_info_topic = self.extraction_config[camera_info_key]["topic_name"]
 
+            # check if this data has been extracted in previous run
+            if camera_info_topic in self._extraction_state and self._extraction_state[camera_info_topic] == self.extraction_config[camera_info_key]:
+                # has previously been extracted, and with the same config, do not extract data again
+                print("\tIgnoring extraction of the %s camera info topic. It has previously been extracted"%(camera_info_topic))
+                continue
+
+            # continue with extraction
             print("\tExtracting camera info from %s"%(camera_info_topic))
 
             # set filename and output destination
@@ -178,6 +220,10 @@ class ROSBagExtractor:
                     pass
                 break # camera info stays static
 
+            # update self._extracted_data (i.e., extraction progress)
+            self._extraction_state[camera_info_topic] = self.extraction_config[camera_info_key].copy()
+            self._save()
+
 
     def _extract_topic_data(self):
         """Extracts the topic data from the ROSBag.
@@ -187,6 +233,14 @@ class ROSBagExtractor:
         topic_keys = [x for x in self.extraction_config.keys() if "topic_" in x]
 
         for topic_key in topic_keys:
+            # topic name
+            topic_name = self.extraction_config[topic_key]["topic_name"]
+
+            # check if this data has been extracted in previous run
+            if topic_name in self._extraction_state and self._extraction_state[topic_name] == self.extraction_config[topic_key]:
+                # has previously been extracted, and with the same config, do not extract data again
+                print("\tIgnoring extraction of the %s topic data. It has previously been extracted"%(topic_name))
+                continue
 
             # set ouput directory and create
             output_dir = self.root_output_dir / topic_key # default
@@ -195,7 +249,7 @@ class ROSBagExtractor:
             output_dir.mkdir(parents=True, exist_ok=True)
 
             # extract topic data and return filelist
-            print("\tExtracting topic %s data"%(self.extraction_config[topic_key]['topic_name']))
+            print("\tExtracting topic %s data"%(topic_name))
             if self.extraction_config[topic_key]["message_type"].lower() == "sensor_msgs/image":
                 filelist, topic_frame_id = self._extract_image_topic(topic_key, output_dir)
 
@@ -206,12 +260,17 @@ class ROSBagExtractor:
                 filelist, topic_frame_id = self._extract_pointcloud_2_topic(topic_key, output_dir)
 
             else:
-                print("Unknown message type %s. Ignoring topic data extraction"%(self.extraction_config[topic_key]['topic_name']))
+                print("Unknown message type %s. Ignoring topic data extraction"%(topic_name))
 
             # output transform list if required
             if "transform" in self.extraction_config[topic_key].keys():
-                print("\tWriting out transform file for topic %s"%(self.extraction_config[topic_key]['topic_name']))
+                print("\tWriting out transform file for topic %s"%(topic_name))
                 self._write_topic_transform_file(topic_key, topic_frame_id, filelist, output_dir)
+
+            # update self._extracted_data (i.e., extraction progress) 
+            self._extraction_state[topic_name] = self.extraction_config[topic_key].copy()
+            self._save()
+
                 
 
     def _get_common_topic_extraction_data(self, topic_key : str):
@@ -450,7 +509,7 @@ class ROSBagExtractor:
             # Write transform list
             for data in filelist_with_pose:
                 if type(data[2]) == sm.pose3d.SE3: # make sure transform isn't none
-                    print(data)
+                    # print(data)
                     timestamp = data[1]
                     position = data[2].A[:3, -1]
                     quat = sm.base.r2q(data[2].A[:3,:3])
@@ -466,12 +525,14 @@ class ROSBagExtractor:
     
 
 ### HELPER FUNCTIONS ###
-import ros_numpy
+def dict_without_keys(d, keys):
+    return {x: d[x] for x in d if x not in keys}
 
 # the function rospc_to_o3dpc in the open3d_ros_helper 
 # module throws an error for some reason. Here is a direct 
 # copy of the function, and no error is thrown.
-
+# ros_numpy is required for this funciton
+import ros_numpy
 def rospc_to_o3dpc(rospc, remove_nans=False):
     """ covert ros point cloud to open3d point cloud
     Args: 

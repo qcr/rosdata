@@ -1,8 +1,8 @@
 name: rosdata_env
 channels:
+  - robostack
   - open3d-admin
   - defaults
-  - robostack
   - conda-forge
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
@@ -47,6 +47,7 @@ dependencies:
   - debugpy=1.5.1=py38h709712a_0
   - decorator=5.1.1=pyhd8ed1ab_0
   - defusedxml=0.7.1=pyhd8ed1ab_0
+  - dill=0.3.4=pyhd8ed1ab_0
   - distro=1.6.0=pyhd8ed1ab_0
   - docutils=0.18.1=py38h578d9bd_0
   - empy=3.3.4=pyh9f0ad1d_1
@@ -359,4 +360,4 @@ dependencies:
   - zipp=3.7.0=pyhd8ed1ab_0
   - zlib=1.2.11=h36c2ea0_1013
   - zstd=1.5.1=ha95c52a_0
-prefix: /home/james/.mambaforge/envs/rosdata_env
+prefix: /home/james/mambaforge/envs/rosdata_env

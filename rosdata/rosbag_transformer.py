@@ -10,6 +10,7 @@ from enum import Enum
 from tqdm import tqdm
 from typing import Union
 
+import dill
 import treelib
 import spatialmath as sm
 
@@ -60,15 +61,11 @@ class ROSBagTransformer:
     """
     A Class that processes the transform data from a ROS Bag file
     """
-    def __init__(self, bag):
+    def __init__(self):
         """Constructs and initialises a ROSBagTransform object.
-
-        Args:
-            bag (rosbag object): an opened ROSbag object containing the transform data to be processed.
         """
 
-        # Class Variable Descriptions
-        # self._bag - opened rosbag file
+        # Major Class Variable Descriptions
         # self._frames_dict - a dictionary where the key is a transfer frame and 
         #       the value is a list containing all child frames of that transfer frame. Is used
         #       to build the self._transforms_tree, as the Tree needs to be built from the root and
@@ -85,7 +82,6 @@ class ROSBagTransformer:
         #       [[parent_frame, child_frame], timestamp, TransformData Object]. Order is based on timestamp
 
         # Setup variables
-        self._bag = bag
         self._frames_dict = {}
         self._transforms_tree = treelib.Tree()
         self._transforms = {}
@@ -99,28 +95,49 @@ class ROSBagTransformer:
         self._static_transform_chain = None
         
 
-    def build_transform_tree(self, transform_topic : str = "/tf", static_transform_topic : str ="/tf_static"):
+    def build_transform_tree(self, bag, transform_topic : str = "/tf", static_transform_topic : str ="/tf_static"):
         """Processes the data in the supplied ROSBag, passed during object construction, and builds the
         transform tree. This function must be called prior to any other class methods.
 
         Args:
+            bag (rosbag object): an opened ROSbag object containing the transform data to be processed.
             transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf".
             static_transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf_static".
         """
 
+        # Reset variables
+        self._frames_dict = {}
+        self._transforms_tree = treelib.Tree()
+        self._transforms = {}
+        self._all_transforms = []
+
         # Build transform tree
         print("\nBuilding the transform tree")
-        self._build_transform_tree(transform_topic, static_transform_topic)
+        self._build_transform_tree(bag, transform_topic, static_transform_topic)
 
         print("\nBuilt the following transform tree")
         self._transforms_tree.show()
 
     
-    def _build_transform_tree(self, transform_topic : str, static_transform_topic : str):
+    def save(self, filename):
+        with open(filename, 'wb') as f:
+            dill.dump(self.__dict__, f)
+            f.close()
+
+    def load(self, filename):
+        with open(filename, 'rb') as f:
+            tmp_dict = dill.load(f)
+            f.close()
+        
+        self.__dict__.update(tmp_dict)
+
+    
+    def _build_transform_tree(self, bag, transform_topic : str, static_transform_topic : str):
         """A private function used to help process the transform data in the supplied ROSBag.
          This function must be called prior to any other class methods.
 
         Args:
+            bag (rosbag object): an opened ROSbag object containing the transform data to be processed.
             transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf".
             static_transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf_static".
         """
@@ -128,13 +145,13 @@ class ROSBagTransformer:
 
         # Loop through all tf and static tf messages and get all frames that have children,
         # store data as dictionary in self._frame_dict
-        total_time = int(self._bag.get_end_time() - self._bag.get_start_time())
+        total_time = int(bag.get_end_time() - bag.get_start_time())
         current_time = 0
         with tqdm(total=total_time) as pbar:
-            for topic, msg, t in self._bag.read_messages(topics=[transform_topic, static_transform_topic]):
+            for topic, msg, t in bag.read_messages(topics=[transform_topic, static_transform_topic]):
                 # Update the progress bar
-                if current_time < int(t.to_sec() - self._bag.get_start_time()):
-                    n = int(t.to_sec()- self._bag.get_start_time()) - current_time
+                if current_time < int(t.to_sec() - bag.get_start_time()):
+                    n = int(t.to_sec()- bag.get_start_time()) - current_time
                     current_time += n
                     pbar.update(n)
                 else:
@@ -414,7 +431,7 @@ class ROSBagTransformer:
         if parent != self._previous_lookup_transforms_parent or child != self._previous_lookup_transforms_child:
             # convert the list to a numpy array
             self._transforms_list, self._static_transform_chain = self.lookup_transforms(parent, child)
-            self._transforms_list = transform_list = np.asarray(transform_list, dtype=object)
+            self._transforms_list = np.asarray(self._transforms_list, dtype=object)
 
         # if entire transform chain is static, transform never changes
         if self._static_transform_chain:

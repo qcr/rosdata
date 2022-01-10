@@ -20,11 +20,13 @@ def extract_rosbag_data(bag_path : pathlib.Path, extraction_config_path : pathli
     
     # Check to see if root output directory exists - ask if wish to remove it
     if root_output_dir.exists():
-        if yes_or_no("Data already exists at %s. Would you like to overwrite existing data"%(root_output_dir)):
+        if yes_or_no("\nData already exists at %s. Would you like to overwrite existing data"%(root_output_dir)):
             rmdir(root_output_dir)
-        # else:
+        else:
+            print("\tUsing existing data where possible")
         #     print("Exiting program.")
         #     sys.exit(0)
+    print("")
 
     # create directory
     root_output_dir.mkdir(parents=True, exist_ok=True)
@@ -40,6 +42,7 @@ def extract_rosbag_data(bag_path : pathlib.Path, extraction_config_path : pathli
         extraction_config = yaml.load(file, Loader=yaml.FullLoader)
 
     # Initialise rosbag extractor object and extract data
+    print("Running Data Extraction\n")
     extractor = ROSBagExtractor(bag, extraction_config, root_output_dir)
     extractor.extract_data()
 
