@@ -22,17 +22,21 @@ Details on how to extract this data can be found [below](#extraction-config-file
 
 ## Installation
 
-To install perform the following:
+Conda is used to setup the appropriate environment/dependencies. We recommend the following procedure for the rosdata tool:
 
 ```
 git clone https://github.com/qcr/rosdata.git
 cd <rosdata_repo>
+conda env create --file rosdata_env.yml
+conda activate rosdata_env
 pip install -e .
 ```
 
-Currently, you will need to install dependencies manually. Main dependencies are numpy, treelib, rospy, rosbag, spatialmaths, open3d, and open3d_ros_helper.
+The rosdata tool can then be called from any directory using the command `rosdata <tool> <tool_arguments>`.
 
 <!-- 
+Currently, you will need to install dependencies manually. Main dependencies are numpy, treelib, rospy, rosbag, spatialmaths, open3d, and open3d_ros_helper.
+
 ```
 conda env create --file envname.yml # Environment file not yet provided
 conda activate rosdata_env # Not yet supported
@@ -43,7 +47,7 @@ pip install -e .
 
 ROS Data currently has the following tools:
 
-* extract
+* **extract** - extracts data from a ROSBag given a user defined extraction config file.
 
 These tools can be called by running the following command, after installation:
 
@@ -60,8 +64,8 @@ rosdata extract <extract_arguments>
 Simply type in `-h` or `--help` to get a list of the available tools or the arguments for a specific tool. For example,
 
 ```
-rosdata -h
-rosdata extract --help
+rosdata -h              # to show the list of available tools
+rosdata <tool> --help   # to show the arguments for a specific tool
 ```
 
 ## Examples

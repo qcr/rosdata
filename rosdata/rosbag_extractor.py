@@ -13,7 +13,7 @@ from tqdm import tqdm
 # import treelib
 import spatialmath as sm
 import open3d as o3d
-from open3d_ros_helper import open3d_ros_helper as orh
+# from open3d_ros_helper import open3d_ros_helper as orh
 
 import cv2
 from cv_bridge import CvBridge, CvBridgeError

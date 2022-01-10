@@ -412,7 +412,7 @@ class ROSBagTransformer:
             time, 0.0, transform_list[0][2], Status.SUCCESS
 
         # convert the list to a numpy array
-        transform_list = np.asarray(transform_list)
+        transform_list = np.asarray(transform_list, dtype=object)
 
         # get time difference between the list and desired time
         time_diff = transform_list[:,0] - time
