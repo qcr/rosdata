@@ -62,22 +62,23 @@ class ROSBagExtractor:
         self._load()
 
 
-    def extract_data(self, transform_topic : str="/tf", static_transform_topic : str="/tf_static", save_progress : bool = True):
+    def extract_data(self, transform_topic : str="/tf", static_transform_topic : str="/tf_static"):
         """Extracts the data from the ROSBag.
 
         Args:
             transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf".
             static_transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf_static".
-            save_progress (bool, optional): used to specify if wish to save progress as a pickle file to the root output directory. Defaults to true.
         """
        
         # Pre-process bag transforms or load existing bag transformer object
-        bag_transformer_file = self.root_output_dir / "bag_transformer.pickle"
+        bag_transformer_file = self.root_output_dir / ".rosdata" / "bag_transformer.pickle"
         if not bag_transformer_file.exists():
             print("Processing the transforms")
             self.bag_transformer.build_transform_tree(self.bag, transform_topic, static_transform_topic)
-            if save_progress:
-                self.bag_transformer.save(bag_transformer_file)
+
+            # save progress
+            (bag_transformer_file.parent).mkdir(parents=True, exist_ok=True)
+            self.bag_transformer.save(bag_transformer_file)
         else:
             print("Loading existing bag transformer")
             self.bag_transformer.load(bag_transformer_file)
@@ -98,18 +99,23 @@ class ROSBagExtractor:
         
 
     def _save(self):
+        # Create rosdata save directory
+        tmp_dir = self.root_output_dir / ".rosdata"
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+
         # Get the variables/data wish to save
         data = {key: self.__dict__[key] for key in ["_extraction_state", "_extraction_data"]}
 
         # Go pickle the data
-        filename = self.root_output_dir / "extraction_state.pickle"
+        filename = tmp_dir / "extraction_state.pickle"
         with open(filename, 'wb') as f:
             dill.dump(data, f)
             f.close()
 
+    
     def _load(self):
         # Only load if exists
-        filename = self.root_output_dir / "extraction_state.pickle"
+        filename = self.root_output_dir / ".rosdata" / "extraction_state.pickle"
         if not filename.exists():
             return
 
@@ -175,7 +181,7 @@ class ROSBagExtractor:
                     position[0], position[1], position[2], 
                     quat[0], quat[1], quat[2], quat[3]])
 
-            # update extraction state and save
+            # update extraction state and save 
             self._extraction_state[state_key] = self.extraction_config[transform_key].copy()
             self._save()
 
@@ -220,7 +226,7 @@ class ROSBagExtractor:
                     pass
                 break # camera info stays static
 
-            # update self._extracted_data (i.e., extraction progress)
+            # update extraction state and save 
             self._extraction_state[camera_info_topic] = self.extraction_config[camera_info_key].copy()
             self._save()
 
@@ -267,7 +273,7 @@ class ROSBagExtractor:
                 print("\tWriting out transform file for topic %s"%(topic_name))
                 self._write_topic_transform_file(topic_key, topic_frame_id, filelist, output_dir)
 
-            # update self._extracted_data (i.e., extraction progress) 
+            # update extraction state and save 
             self._extraction_state[topic_name] = self.extraction_config[topic_key].copy()
             self._save()
 

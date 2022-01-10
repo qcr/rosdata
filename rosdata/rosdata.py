@@ -2,6 +2,7 @@
 
 ### IMPORT MODULES ###
 import sys
+from numpy.lib.npyio import save
 import yaml
 import rosbag
 import pathlib
