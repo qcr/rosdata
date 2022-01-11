@@ -23,15 +23,15 @@ from cv_bridge import CvBridge, CvBridgeError
 from .rosbag_transformer import ROSBagTransformer
 
 
-from enum import IntEnum
-class StateKeys(IntEnum):
-    CleanState = 0
-    TransformTreeBuilt = 1
+# from enum import IntEnum
+# class StateKeys(IntEnum):
+#     CleanState = 0
+#     TransformTreeBuilt = 1
 
-class ExtractionKey(IntEnum):
-    NoExtraction = 0
-    Data = 1
-    DataAndTransforms = 2
+# class ExtractionKey(IntEnum):
+#     NoExtraction = 0
+#     Data = 1
+#     DataAndTransforms = 2
 
 ### ROSBAG EXTRACTOR CLASS ###
 class ROSBagExtractor:

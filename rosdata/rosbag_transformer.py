@@ -89,49 +89,13 @@ class ROSBagTransformer:
 
         # Following variables are used to store information from most recent self.lookup_transform call,
         # to increase following call
-        self._previous_lookup_transforms_parent = None
-        self._previous_lookup_transforms_child = None
+        self._previous_lookup_transforms_source = None
+        self._previous_lookup_transforms_dest = None
         self._transforms_list = None
         self._static_transform_chain = None
         
 
-    def build_transform_tree(self, bag, transform_topic : str = "/tf", static_transform_topic : str ="/tf_static"):
-        """Processes the data in the supplied ROSBag, passed during object construction, and builds the
-        transform tree. This function must be called prior to any other class methods.
-
-        Args:
-            bag (rosbag object): an opened ROSbag object containing the transform data to be processed.
-            transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf".
-            static_transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf_static".
-        """
-
-        # Reset variables
-        self._frames_dict = {}
-        self._transforms_tree = treelib.Tree()
-        self._transforms = {}
-        self._all_transforms = []
-
-        # Build transform tree
-        print("\nBuilding the transform tree")
-        self._build_transform_tree(bag, transform_topic, static_transform_topic)
-
-        print("\nBuilt the following transform tree")
-        self._transforms_tree.show()
-
-    
-    def save(self, filename):
-        with open(filename, 'wb') as f:
-            dill.dump(self.__dict__, f)
-            f.close()
-
-    def load(self, filename):
-        with open(filename, 'rb') as f:
-            tmp_dict = dill.load(f)
-            f.close()
         
-        self.__dict__.update(tmp_dict)
-
-    
     def _build_transform_tree(self, bag, transform_topic : str, static_transform_topic : str):
         """A private function used to help process the transform data in the supplied ROSBag.
          This function must be called prior to any other class methods.
@@ -210,7 +174,6 @@ class ROSBagTransformer:
         # Change tag of all child frames to static if required
 
 
-
     def _add_child_frames(self, parent : str):
         """A private function to be used recursively with the self._frames_dict
             to add nodes to the transforms tree class variable.
@@ -233,20 +196,124 @@ class ROSBagTransformer:
             if child_frame in self._frames_dict.keys():
                 self._add_child_frames(child_frame)
         
-    
-    def static_transform(self, parent : str, child : str) -> bool:
-        """determines if parent to child transform chain is static.
+
+    def _check_frames_exist(self, frames : list):
+        """checks to see if all frames in the passed list exist within the transform tree.
 
         Args:
-            parent (str): the name of the parent frame
-            child (str): the name of the child frame (does not need to be directly connected to the parent)
+            frames (list): a string list containing the frames to check.
 
-        Returns:
-            bool: returns true if the parent to child transform chain is static.
+        Raises:
+            ValueError: if the frame does not exist within the tree.
+        """
+        for frame in frames:
+            if not self.frame_exists(frame):
+                raise ValueError('The transform frame \'%s\' does not exist in the transform tree.'%(frame))
+
+    
+    def save(self, filename):
+        with open(filename, 'wb') as f:
+            dill.dump(self.__dict__, f)
+            f.close()
+
+    
+    def load(self, filename):
+        with open(filename, 'rb') as f:
+            tmp_dict = dill.load(f)
+            f.close()
+        
+        self.__dict__.update(tmp_dict)
+
+
+    def build_transform_tree(self, bag, transform_topic : str = "/tf", static_transform_topic : str ="/tf_static"):
+        """Processes the data in the supplied ROSBag, passed during object construction, and builds the
+        transform tree. This function must be called prior to any other class methods.
+
+        Args:
+            bag (rosbag object): an opened ROSbag object containing the transform data to be processed.
+            transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf".
+            static_transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf_static".
         """
 
+        # Reset variables
+        self._frames_dict = {}
+        self._transforms_tree = treelib.Tree()
+        self._transforms = {}
+        self._all_transforms = []
+
+        # Build transform tree
+        print("\nBuilding the transform tree")
+        self._build_transform_tree(bag, transform_topic, static_transform_topic)
+
+        print("\nBuilt the following transform tree")
+        self._transforms_tree.show()
+
+    
+    def frame_exists(self, frame : str) -> bool:
+        """Checks to see if a frame exists within the transform tree.
+
+        Args:
+            frame (str): the name of the frame to check for
+
+        Returns:
+            bool: True if the frame exists
+        """
+        return self._transforms_tree.contains(frame)
+
+    
+    def get_common_frame(self, frame_1 : str, frame_2 : str) -> str:
+        """gets the lowest common ancester frame between two frames.
+
+        Args:
+            frame_1 (str): the first transform frame
+            frame_2 (str): the second transform frame
+
+        Returns:
+            str: the name of the lowest commom ancestor transform frame
+        """
+        
+        # check to see which frame is deeper
+        if self._transforms_tree.depth(frame_1) > self._transforms_tree.depth(frame_2):
+            # frame 1 is further down tree
+            lower_frame = frame_1
+            higher_frame = frame_2
+        else:
+            # frame 2 is further down tree
+            lower_frame = frame_2
+            higher_frame = frame_1
+
+        # go until lower frame has same depth as higher frame
+        while self._transforms_tree.depth(lower_frame) != self._transforms_tree.depth(higher_frame):
+            lower_frame = self._transforms_tree.parent(lower_frame).identifier
+
+        # move both up one level until lower frame equals higher frame
+        while lower_frame != higher_frame:
+            lower_frame = self._transforms_tree.parent(lower_frame).identifier
+            higher_frame = self._transforms_tree.parent(higher_frame).identifier
+
+        # return
+        return lower_frame
+
+    
+    def static_transform(self, source : str, dest : str) -> bool:
+        """determines if the transform chain from a source to a destination frame is static.
+
+        Args:
+            source (str): the name of the source frame
+            dest (str): the name of the destination frame (does not need to be directly connected to the source frame)
+
+        Raises:
+            ValueError: if the source or destination frame does not exist within the tree.
+
+        Returns:
+            bool: returns true if the transform chain is static.
+        """
+
+        # check frames exist in the tree
+        self._check_frames_exist([source, dest])
+
         # check to see if each transform link in the chain is
-        transform_chain = self.get_chain(parent, child)
+        transform_chain = self.get_chain(source, dest)
         for transform_pair in transform_chain:
             if not self._transforms_tree.get_node(transform_pair[1]).data.static_transform:
                 return False
@@ -264,70 +331,88 @@ class ROSBagTransformer:
 
         return self._transforms_tree.to_dict()
 
-    def get_chain(self, parent : str, child : str, return_type : type = tuple) -> Union[tuple, list]:
-        """gets the transform chain from a parent to a child frame. The child frame does not need to
-        be directly connected to the parent.
+    
+    def get_chain(self, source : str, dest : str, return_type : type = tuple) -> Union[tuple, list]:
+        """gets the transform chain from a source to a destination frame. The source frame does not need to
+        be directly connected to the dest.
 
         Args:
-            parent (str): the name of the parent frame
-            child (str): the name of the child frame (does not need to be directly connected to the parent)
+            source (str): the name of the source (i.e., start) frame
+            dest (str): the name of the dest (i.e., end) frame (does not need to be directly connected to the source)
             return_type (type, optional): used to specify the return type. Defaults to tuple.
+
+        Raises:
+            ValueError: if the source or destination frame does not exist within the tree.
 
         Returns:
             Union[tuple, list]: returns either a tuple or list. If the return_type is set to tuple,
                 the returned value will contain a tuple of pairs holding the names of directly 
-                connected parent to child frames within the chain. If the return_type is set to 
-                a list, the returned value will be an ordered list containing the names of the 
+                connected source to destination frames within the chain. If the return_type is set to 
+                a list, the returned value will be a list containing the names of the 
                 frames in the transform chain.
         """
 
-        retval_list = []
-        retval_tuple = []
+        # check frames exist in the tree
+        self._check_frames_exist([source, dest])
 
-        if parent == child:
-            return None
+        # quick check
+        if source == dest:
+            if return_type == list:
+                return []
+            elif return_type == tuple:
+                return ()
+
+        # Get lowest common ancester
+        common_frame = self.get_common_frame(source, dest)
+
+        # Create subtree with the common frame as the root, then use rsearch to get paths
+        tmp_tree = self._transforms_tree.subtree(common_frame)
+        source_to_common = list(tmp_tree.rsearch(source))
+        common_to_dest = list(reversed(list(tmp_tree.rsearch(dest))))
         
-        # build up transform list
-        current = child 
-        while self._transforms_tree.parent(current) != None:
-            parent = self._transforms_tree.parent(current).identifier
-            retval_tuple.append([parent, current])
-            retval_list.append(current)
-            current = parent
-        retval_list.append(parent)
+        # Create return list
+        retval_list = source_to_common + common_to_dest[1:]
 
         # return
         if return_type == list:
-            return list(reversed(retval_list))
+            return retval_list
         elif return_type == tuple:
-            return tuple(reversed(retval_tuple))
+            return tuple([retval_list[idx:idx+2] for idx in range(len(retval_list)-1)])
 
-    def lookup_transforms(self, parent : str, child : str) -> tuple:
-        """looks up and returns the transforms between a parent and child frame. 
-            If the transform is a chain (i.e., the parent and child are not directly 
+    
+    def lookup_transforms(self, source : str, dest : str) -> tuple:
+        """looks up and returns the transforms between a source and destination frame. 
+            If the transform is a chain (i.e., the source and destination are not directly 
             connected) the transform will be updated whenever one of the transforms 
             in the chain is updated.
 
         Args:
-            parent (str): the name of the parent frame
-            child (str): the name of the child frame (does not need to be directly connected to the parent)
+            source (str): the name of the source frame
+            dest (str): the name of the destination frame
+
+        Raises:
+            ValueError: if the source or destination frame does not exist within the tree.
 
         Returns:
             tuple: returned tuple with types (list, bool). The list contains the 
-                transforms between the parent and child. The  list will have the form 
+                transforms between the source and destination. The  list will have the form 
                 [timestamp (float), chain_differential (float), transform (SE3 object)]
                 where timestamp is the most recent timestamp in the transform chain used
                 to create the entire transform. The chain_differential is the difference
                 between the most recent and oldest timestamp in the transform chain used
                 to create the overall transform. The transform is an SE3 object containing
-                the total transform between the parent and child frame. 
+                the total transform between the source and destination frame. 
                 The boolean represents if the entire chain is static.
         """
 
+        # check frames exist in the tree
+        self._check_frames_exist([source, dest])
+
+        # variables
         transforms_list = []
 
         # get all frames within the chain
-        transform_chain = self.get_chain(parent, child)
+        transform_chain = self.get_chain(source, dest)
 
         # check to see if entire transform chain is static
         static_transform_chain = True
@@ -336,10 +421,10 @@ class ROSBagTransformer:
                 static_transform_chain = False
                 break
 
-        # if the frames are directly connected, get the transform from the child
-        # node and return the transform list
-        if self._transforms_tree.parent(child).identifier == parent:
-            transforms = self._transforms_tree.get_node(child).data.transforms
+        # if the frames are directly connected, get the transform data
+        # from the destination node and return the transform list
+        if self._transforms_tree.parent(dest).identifier == source:
+            transforms = self._transforms_tree.get_node(dest).data.transforms
             for transform in transforms:
                 transforms_list.append([transform.timestamp, 0.0, transform.transform])
 
@@ -398,13 +483,14 @@ class ROSBagTransformer:
         # return transforms, sorted based on timestamp (should already be sorted but, just in case)
         return sorted(transforms_list, key=lambda x : x[0]), static_transform_chain
 
-    def lookup_transform(self, parent : str, child : str, time : float, method : str="nearest", lookup_limit : float=None, chain_limit : float=None) -> tuple:
-        """Looks up and returns transform between a parent and child frame for a given time. If the entire transform chain
-            is static then the method, and limit arguments are ignored.
+    
+    def lookup_transform(self, source : str, dest : str, time : float, method : str="nearest", lookup_limit : float=None, chain_limit : float=None) -> tuple:
+        """Looks up and returns transform between a source and destination frame for a given time. If the entire transform chain
+            is static then the method and limit arguments are ignored.
 
         Args:
-            parent (str): the name of the parent frame
-            child (str): the name of the child frame (does not need to be directly connected to the parent)
+            source (str): the name of the source frame
+            dest (str): the name of the destination frame
             time (float): the time at which to look up the transform
             method (str, optional): the method to use when looking up the transform. 
                 Options include "exact", "recent", "nearest", and "interpolate". Defaults to "nearest".
@@ -414,10 +500,13 @@ class ROSBagTransformer:
                 interpolate - will return an interpolated transform only if there is a transform either side
                     of the desired time within the lookup_limit.
             lookup_limit (float, optional): the limit to use when looking up a transform. If a transform 
-            between the parent and child frame cannot be found within this limit a Status.LOOKUP_LIMIT_ERROR 
+            between the source and destination frame cannot be found within this limit a Status.LOOKUP_LIMIT_ERROR 
             will be returned. Defaults to None.
             chain_limit (float, optional): if the selected transform has a chain differential greater than 
             this value a Status.CHAIN_LIMIT_ERROR will be returned. Defaults to None.
+
+        Raises:
+            ValueError: if the source or destination frame does not exist within the tree.
 
         Returns:
             tuple: returns a tuple containing the [timestamp, chain_differential, transform, status].
@@ -427,11 +516,16 @@ class ROSBagTransformer:
                 differential of the two transforms used in the interpolate method.
         """
 
+        # check frames exist in the tree
+        self._check_frames_exist([source, dest])
+
         # get the transform list for the specified chain
-        if parent != self._previous_lookup_transforms_parent or child != self._previous_lookup_transforms_child:
+        if source != self._previous_lookup_transforms_source or dest != self._previous_lookup_transforms_dest:
             # convert the list to a numpy array
-            self._transforms_list, self._static_transform_chain = self.lookup_transforms(parent, child)
+            self._transforms_list, self._static_transform_chain = self.lookup_transforms(source, dest)
             self._transforms_list = np.asarray(self._transforms_list, dtype=object)
+        self._previous_lookup_transforms_source = source
+        self._previous_lookup_transforms_dest = dest
 
         # if entire transform chain is static, transform never changes
         if self._static_transform_chain:
