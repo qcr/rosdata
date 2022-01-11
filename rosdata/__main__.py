@@ -4,7 +4,7 @@
 import sys
 import pathlib
 import argparse
-from .rosdata import extract_rosbag_data
+from .rosdata import extract_rosbag_data, visualise_data
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
     p_extract.add_argument('root_output_dir', type=str, help="the absolute path to the root output directory.")
 
     p_visualise = sp.add_parser('visualise', help='Visualise extracted data.')
-    # p_extract.add_argument('root_output_dir', type=str, help="the absolute path to the root output diectory.")
+    p_visualise.add_argument('csv_file', type=str, help="the path to the CSV file that wish to visualise.")
 
 
     args = p.parse_args()
@@ -33,8 +33,11 @@ def main():
         return
 
     # run requested operation
-    if args.mode == "extract":
+    if args.mode.lower() == "extract":
         extract_rosbag_data(pathlib.Path(args.rosbag), pathlib.Path(args.extraction_config), pathlib.Path(args.root_output_dir))
+    
+    elif args.mode.lower() == "visualise":
+        visualise_data(args.csv_file)
 
 
 if __name__ == '__main__':

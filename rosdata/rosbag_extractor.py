@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 ### IMPORT MODULES ###
-import os
+# import os
 # import sys
 import csv
 import yaml
 import dill
-# import pickle as dill
 import pathlib
 import numpy as np
 # from enum import Enum
