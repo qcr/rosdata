@@ -3,6 +3,7 @@
 ### IMPORT MODULES ###
 # import sys
 import csv
+from numpy.lib.npyio import save
 import yaml
 import rosbag
 import pathlib
@@ -93,6 +94,8 @@ def visualise_data(csv_file : pathlib.Path, save_file : pathlib.Path = None):
     ax2.set_zlabel('Z Position')
     ax2.set_title('3D Pose Plot')
 
+    if save_file is not None:
+        plt.savefig(str(save_file))
     plt.show()
 
 

@@ -23,6 +23,7 @@ def main():
 
     p_visualise = sp.add_parser('visualise', help='Visualise extracted data.')
     p_visualise.add_argument('csv_file', type=str, help="the path to the CSV file that wish to visualise.")
+    p_visualise.add_argument('-s', '--save', type=str, help="the filepath to save the generated figure.")
 
 
     args = p.parse_args()
@@ -37,7 +38,7 @@ def main():
         extract_rosbag_data(pathlib.Path(args.rosbag), pathlib.Path(args.extraction_config), pathlib.Path(args.root_output_dir))
     
     elif args.mode.lower() == "visualise":
-        visualise_data(args.csv_file)
+        visualise_data(args.csv_file, args.save)
 
 
 if __name__ == '__main__':
