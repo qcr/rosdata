@@ -26,7 +26,7 @@ Details on how to extract this data can be found [below](#extraction-config-file
 
 Conda is used to setup the appropriate environment/dependencies. We recommend the following procedure for the rosdata tool:
 
-```
+```bash
 git clone https://github.com/qcr/rosdata.git
 cd <rosdata_repo>
 conda env create --file rosdata_env.yml
@@ -54,27 +54,27 @@ ROS Data currently has the following tools:
 
 These tools can be called by running the following command, after installation:
 
-```
+```bash
 rosdata <tool> <tool_arguments>
 ```
 
 For example,
 
-```
+```bash
 rosdata extract <extract_arguments>
 ```
 
 Simply type in `-h` or `--help` to get a list of the available tools or the arguments for a specific tool. For example,
 
 ```bash
-rosdata --help              # to show the list of available tools
+rosdata --help          # to show the list of available tools
 rosdata <tool> --help   # to show the arguments for a specific tool
 ```
 
 ## Examples
 A complete extraction example is provided. Run the following commands after installation to execute the example:
 
-```
+```bash
 cd <rosdata_repo>/example
 rosdata extract example.bag example_extraction_config.yaml data
 ```
