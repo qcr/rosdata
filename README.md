@@ -66,8 +66,8 @@ rosdata extract <extract_arguments>
 
 Simply type in `-h` or `--help` to get a list of the available tools or the arguments for a specific tool. For example,
 
-```
-rosdata -h              # to show the list of available tools
+```bash
+rosdata --help              # to show the list of available tools
 rosdata <tool> --help   # to show the arguments for a specific tool
 ```
 
