@@ -69,7 +69,7 @@ def show_info(bag_path : pathlib.Path, **kwargs):
     if show_all or ('transform_tree' in kwargs and kwargs['transform_tree']):
         print("Processing the Transforms... Building the transform tree")
         bag_transformer = ROSBagTransformer()
-        bag_transformer.build_transform_tree(bag)``
+        bag_transformer.build_transform_tree(bag)
         print("\nBuilt the following transform tree")
         bag_transformer.show_tree()
 
