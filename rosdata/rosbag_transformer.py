@@ -24,6 +24,7 @@ class Status(Enum):
     NO_MATCHING_TRANSFORM = 2
     LOOKUP_LIMIT_ERROR = 3
     CHAIN_LIMIT_ERROR = 4
+    SPATIALMATH_INTERP_ERROR = 5
 
 class TransformData:
 
@@ -584,6 +585,8 @@ class ROSBagTransformer:
             
             # interpolate the position
             transform = self._transforms_list[negative_idx][2].interp(self._transforms_list[positive_idx][2], point)
+            if type(transform.A) != np.ndarray: # interpolation error
+                return None, None, None, Status.SPATIALMATH_INTERP_ERROR
 
             # set timestamp, to be the desired time
             timestamp = time

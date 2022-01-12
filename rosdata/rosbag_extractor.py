@@ -7,6 +7,7 @@ import csv
 import yaml
 import dill
 import pathlib
+import subprocess
 import numpy as np
 # from enum import Enum
 from tqdm import tqdm
@@ -56,6 +57,9 @@ class ROSBagExtractor:
         # Variables used to continue from previous execution
         self._extraction_state = {}
         self._extraction_data = {}
+
+        # Get list of topics in the bag
+        self._topics = list(self.bag.get_type_and_topic_info()[1].keys())
 
         # Load existing extraction progress
         self._load()
@@ -126,6 +130,10 @@ class ROSBagExtractor:
         # Update dictionary
         self.__dict__.update(tmp_dict)
 
+    
+    def _topic_exists(self, topic : str):
+        return topic in self._topics
+
 
     def _extract_dynamic_transform_data(self):
         """Extracts the dynamic transforms from the ROSBag. The data is saved as a CSV file at the location
@@ -141,15 +149,20 @@ class ROSBagExtractor:
             parent_frame = self.extraction_config[transform_key]["parent_frame"]
             child_frame = self.extraction_config[transform_key]["child_frame"]
 
+            # make sure frames exists
+            if not self.bag_transformer.frame_exists(parent_frame) or not self.bag_transformer.frame_exists(child_frame):
+                print("\tERROR! The transform between \'%s\' and \'%s\' does not exist. Ignoring extraction."%(parent_frame, child_frame))
+                continue
+
             # check if this data has been extracted in previous run
             state_key = "%s to %s"%(parent_frame, child_frame)
             if state_key in self._extraction_state and self._extraction_state[state_key] == self.extraction_config[transform_key]:
                 # has previously been extracted, and with the same config, do not extract data again
-                print("\tIgnoring extraction of the %s to %s transform list. It has previously been extracted"%(parent_frame, child_frame))
+                print("\tIgnoring extraction of the \'%s\' to \'%s\' transform list. It has previously been extracted"%(parent_frame, child_frame))
                 continue
 
             # continue with extraction
-            print("\tExtracting %s to %s transform list"%(parent_frame, child_frame))
+            print("\tExtracting \'%s\' to \'%s\' transform list"%(parent_frame, child_frame))
 
             # set output destination and filename
             filename = transform_key + ".csv" # default
@@ -169,7 +182,7 @@ class ROSBagExtractor:
 
                 # create csvwriter object and write header
                 csvwriter = csv.writer(csvfile, delimiter=',')
-                csvwriter.writerow(["parent_frame", "child_frame", "timestamp", "pos_x", "pos_y", "pos_z", "quat_x", "quat_y", "quat_z", "quat_w"])
+                csvwriter.writerow(["parent_frame", "child_frame", "timestamp", "pos_x", "pos_y", "pos_z", "quat_x", "quat_y", "quat_z", "quat_w", "chain_differential"])
 
                 # Write transform list
                 for transform in transform_list:
@@ -178,7 +191,7 @@ class ROSBagExtractor:
 
                     csvwriter.writerow([parent_frame, child_frame, transform[0], 
                     position[0], position[1], position[2], 
-                    quat[0], quat[1], quat[2], quat[3]])
+                    quat[0], quat[1], quat[2], quat[3], transform[1]])
 
             # update extraction state and save 
             self._extraction_state[state_key] = self.extraction_config[transform_key].copy()
@@ -195,6 +208,11 @@ class ROSBagExtractor:
         for camera_info_key in camera_info_keys:
             # get camera info topic
             camera_info_topic = self.extraction_config[camera_info_key]["topic_name"]
+
+            # check topic exists
+            if not self._topic_exists(camera_info_topic):
+                print("\tERROR! The topic \'%s\' does not exist. Ignoring extraction."%(camera_info_topic))
+                continue
 
             # check if this data has been extracted in previous run
             if camera_info_topic in self._extraction_state and self._extraction_state[camera_info_topic] == self.extraction_config[camera_info_key]:
@@ -241,6 +259,11 @@ class ROSBagExtractor:
             # topic name
             topic_name = self.extraction_config[topic_key]["topic_name"]
 
+            # check topic exists
+            if not self._topic_exists(topic_name):
+                print("\tERROR! The topic \'%s\' does not exist. Ignoring extraction."%(topic_name))
+                continue
+
             # check if this data has been extracted in previous run
             if topic_name in self._extraction_state and self._extraction_state[topic_name] == self.extraction_config[topic_key]:
                 # has previously been extracted, and with the same config, do not extract data again
@@ -275,8 +298,7 @@ class ROSBagExtractor:
             # update extraction state and save 
             self._extraction_state[topic_name] = self.extraction_config[topic_key].copy()
             self._save()
-
-                
+              
 
     def _get_common_topic_extraction_data(self, topic_key : str):
         # Get topic name 
@@ -309,41 +331,31 @@ class ROSBagExtractor:
                 contains the frame ID for the topic.
         """
 
-        # Variables
-        frame_list = []
-        idx = 0
-        cv_bridge = CvBridge()
-
         # Get topic name and filename template
         topic_name, _, filename_template = self._get_common_topic_extraction_data(topic_key)
 
+        # Define Variables
+        cv_bridge = CvBridge()
+        topic_count = self.bag.get_message_count(topic_name)
+        frame_list = [None]*topic_count # pre-allocate list memory
+        idx = 0
+
         # Loop through bag
-        current_time = 0
-        total_time = int(self.bag.get_end_time() - self.bag.get_start_time())
-        with tqdm(total=total_time) as pbar:
-            for topic, msg, t in self.bag.read_messages(topics=[topic_name]):
-                # Update the progress bar
-                if current_time < int(t.to_sec() - self.bag.get_start_time()):
-                    n = int(t.to_sec()- self.bag.get_start_time()) - current_time
-                    current_time += n
-                    pbar.update(n)
-                else:
-                    pbar.update(0)
+        for _, msg, t in tqdm(self.bag.read_messages(topics=[topic_name]), total=topic_count):
+            # Create image filename
+            timestamp_str = str(t.to_sec()).replace(".", "_")
+            image_filename = (filename_template%(idx)).replace("<ros_timestamp>", timestamp_str) + ".jpeg"
 
-                # Create image filename
-                timestamp_str = str(t.to_sec()).replace(".", "_")
-                image_filename = (filename_template%(idx)).replace("<ros_timestamp>", timestamp_str) + ".jpeg"
+            # Save image, but first need to convert to OpenCV image
+            try:
+                cv_image = cv_bridge.imgmsg_to_cv2(msg, "bgr8")
+                cv2.imwrite(str(output_dir / image_filename), cv_image)
+            except CvBridgeError:
+                rospy.logwarn("Unable to convert image {image_count}")
 
-                # Save image, but first need to convert to OpenCV image
-                try:
-                    cv_image = cv_bridge.imgmsg_to_cv2(msg, "bgr8")
-                    cv2.imwrite(str(output_dir / image_filename), cv_image)
-                except CvBridgeError:
-                    rospy.logwarn("Unable to convert image {image_count}")
-
-                # Add image to image_list and increase idx
-                frame_list.append([image_filename, t.to_sec()])
-                idx += 1
+            # Add image to image_list and increase idx
+            frame_list.append([image_filename, t.to_sec()])
+            idx += 1
 
         # get topic frame id and return list 
         topic_frame_id = msg.header.frame_id
@@ -365,38 +377,28 @@ class ROSBagExtractor:
                 contains the frame ID for the topic.
         """
 
-        # Variables
-        frame_list = []
-        idx = 0
-
         # Get topic name and filename template
         topic_name, _, filename_template = self._get_common_topic_extraction_data(topic_key)
 
+        # Define variables
+        topic_count = self.bag.get_message_count(topic_name)
+        frame_list = [None]*topic_count # pre-allocate list memory
+        idx = 0
+
         # Loop through bag
-        current_time = 0
-        total_time = int(self.bag.get_end_time() - self.bag.get_start_time())
-        with tqdm(total=total_time) as pbar:
-            for topic, msg, t in self.bag.read_messages(topics=[topic_name]):
-                # Update the progress bar
-                if current_time < int(t.to_sec() - self.bag.get_start_time()):
-                    n = int(t.to_sec()- self.bag.get_start_time()) - current_time
-                    current_time += n
-                    pbar.update(n)
-                else:
-                    pbar.update(0)
+        for _, msg, t in tqdm(self.bag.read_messages(topics=[topic_name]), total=topic_count):
+            # Create image filename
+            timestamp_str = str(t.to_sec()).replace(".", "_")
+            image_filename = (filename_template%(idx)).replace("<ros_timestamp>", timestamp_str) + ".jpeg"
 
-                # Create image filename
-                timestamp_str = str(t.to_sec()).replace(".", "_")
-                image_filename = (filename_template%(idx)).replace("<ros_timestamp>", timestamp_str) + ".jpeg"
+            # Save image directly
+            image_file = open(output_dir / image_filename, "wb+")
+            image_file.write(msg.data)
+            image_file.close()
 
-                # Save image directly
-                image_file = open(output_dir / image_filename, "wb+")
-                image_file.write(msg.data)
-                image_file.close()
-
-                # Add image to image_list and increase idx
-                frame_list.append([image_filename, t.to_sec()])
-                idx += 1
+            # Add image to image_list and increase idx
+            frame_list.append([image_filename, t.to_sec()])
+            idx += 1
 
         # get topic frame id and return list 
         topic_frame_id = msg.header.frame_id
@@ -418,38 +420,28 @@ class ROSBagExtractor:
                 contains the frame ID for the topic.
         """
 
-        # Variables
-        frame_list = []
-        idx = 0
-
         # Get topic name and filename template
         topic_name, _, filename_template = self._get_common_topic_extraction_data(topic_key)
 
+        # Define variables
+        topic_count = self.bag.get_message_count(topic_name)
+        frame_list = [None]*topic_count # pre-allocate list memory
+        idx = 0
+
         # Loop through bag
-        current_time = 0
-        total_time = int(self.bag.get_end_time() - self.bag.get_start_time())
-        with tqdm(total=total_time) as pbar:
-            for _, msg, t in self.bag.read_messages(topics=[topic_name]):
-                # Update the progress bar
-                if current_time < int(t.to_sec() - self.bag.get_start_time()):
-                    n = int(t.to_sec()- self.bag.get_start_time()) - current_time
-                    current_time += n
-                    pbar.update(n)
-                else:
-                    pbar.update(0) 
+        for _, msg, t in tqdm(self.bag.read_messages(topics=[topic_name]), total=topic_count):
+            # Create pointcloud filename
+            timestamp_str = str(t.to_sec()).replace(".", "_")
+            pcd_filename = (filename_template%(idx)).replace("<ros_timestamp>", timestamp_str) + ".ply"
 
-                # Create pointcloud filename
-                timestamp_str = str(t.to_sec()).replace(".", "_")
-                pcd_filename = (filename_template%(idx)).replace("<ros_timestamp>", timestamp_str) + ".ply"
+            # Decode and save the point cloud
+            # o3d_pcd = orh.rospc_to_o3dpc(msg) this throws an error message, not sure why haven't dug into it
+            o3d_pcd = rospc_to_o3dpc(msg)
+            o3d.io.write_point_cloud(str(output_dir / pcd_filename), o3d_pcd) 
 
-                # Decode and save the point cloud
-                # o3d_pcd = orh.rospc_to_o3dpc(msg) this throws an error message, not sure why haven't dug into it
-                o3d_pcd = rospc_to_o3dpc(msg)
-                o3d.io.write_point_cloud(str(output_dir / pcd_filename), o3d_pcd) 
-
-                # Add image to image_list and increase idx
-                frame_list.append([pcd_filename, t.to_sec()])
-                idx += 1
+            # Add image to image_list and increase idx
+            frame_list[idx] = [pcd_filename, t.to_sec()]
+            idx += 1
 
         # get topic frame id and return list 
         topic_frame_id = msg.header.frame_id
@@ -482,17 +474,27 @@ class ROSBagExtractor:
         lookup_limit = None # default
         if "lookup_limit" in self.extraction_config[topic_key]["transform"].keys():
             lookup_limit = self.extraction_config[topic_key]["transform"]["lookup_limit"]
+            if isinstance(lookup_limit, str):
+                if lookup_limit.lower() == "none":
+                    lookup_limit = None
+                else:
+                    raise ValueError("The value for the lookup limit parameter must be NULL, None or a float. It cannot be a string.")
 
         chain_limit = None # default
         if "chain_limit" in self.extraction_config[topic_key]["transform"].keys():
             chain_limit = self.extraction_config[topic_key]["transform"]["chain_limit"]
+            if isinstance(chain_limit, str):
+                if chain_limit.lower() == "none":
+                    chain_limit = None
+                else:
+                    raise ValueError("The value for the chain limit parameter must be NULL, None or a float. It cannot be a string.")
 
         # get transform for each
-        filelist_with_pose = []
-        for frame in tqdm(filelist):
+        filelist_with_data = [None]*len(filelist) # pre-allocate memory
+        for idx, frame in enumerate(tqdm(filelist)): 
             timestamp, chain_differential, transform, status = self.bag_transformer.lookup_transform(parent_frame, child_frame, frame[1],
                 method=method, lookup_limit=lookup_limit, chain_limit=chain_limit)
-            filelist_with_pose.append([frame[0], timestamp, transform, status])
+            filelist_with_data[idx] = [frame[0], frame[1], transform, status, timestamp, chain_differential]
 
         # set output destination and filename
         filename = topic_key + ".csv" # default
@@ -509,23 +511,25 @@ class ROSBagExtractor:
 
             # create csvwriter object and write header
             csvwriter = csv.writer(csvfile, delimiter=',')
-            csvwriter.writerow(["filename", "parent_frame", "child_frame", "timestamp", "pos_x", "pos_y", "pos_z", "quat_x", "quat_y", "quat_z", "quat_w", "status"])
+            csvwriter.writerow(["filename", "parent_frame", "child_frame", "frame_timestamp", "pos_x", "pos_y", "pos_z", "quat_x", "quat_y", "quat_z", "quat_w", "transform_timestamp", "chain_differential", "status"])
 
             # Write transform list
-            for data in filelist_with_pose:
+            for idx, data in enumerate(filelist_with_data):
                 if type(data[2]) == sm.pose3d.SE3: # make sure transform isn't none
-                    # print(data)
-                    timestamp = data[1]
                     position = data[2].A[:3, -1]
                     quat = sm.base.r2q(data[2].A[:3,:3])
+                    transform_timestamp = data[4]
+                    chain_differential = data[5]
                 else:
-                    timestamp = "None"
                     position = ["None"]*3
                     quat = ["None"]*4
+                    transform_timestamp = "None"
+                    chain_differential = "None"
 
-                csvwriter.writerow([data[0], parent_frame, child_frame, timestamp, 
+                csvwriter.writerow([data[0], parent_frame, child_frame, data[1], 
                 position[0], position[1], position[2], 
-                quat[0], quat[1], quat[2], quat[3], data[3].name])
+                quat[0], quat[1], quat[2], quat[3], 
+                transform_timestamp, chain_differential, data[3].name])
     
     
 
