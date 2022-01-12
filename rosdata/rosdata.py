@@ -67,8 +67,11 @@ def show_info(bag_path : pathlib.Path, **kwargs):
 
     # Builds and shows the transform tree
     if show_all or ('transform_tree' in kwargs and kwargs['transform_tree']):
+        print("Processing the Transforms... Building the transform tree")
         bag_transformer = ROSBagTransformer()
-        bag_transformer.build_transform_tree(bag)
+        bag_transformer.build_transform_tree(bag)``
+        print("\nBuilt the following transform tree")
+        bag_transformer.show_tree()
 
     # Report information for topics
     if show_all or ('topic_info' in kwargs and kwargs['topic_info']):
@@ -90,6 +93,11 @@ def show_info(bag_path : pathlib.Path, **kwargs):
             # for this topic
             if hasattr(msg, 'header') and msg.header.frame_id not in data[topic]['frames']:
                 data[topic]['frames'].append(msg.header.frame_id)
+
+            # could break once all topics have gone through once, however that assumes that
+            # all topics are only associated with one transform frame. That assumption should
+            # in a correct ROS system, but what about in a poorly coded ROS system and should we
+            # try and catch that error?
 
         # Change data type for tabulate
         data_table = [['Topic', 'Message Type', 'Message Count', 'Connections', 'Frequency', 'Transform Frames']]

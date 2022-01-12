@@ -228,7 +228,8 @@ class ROSBagTransformer:
 
     def build_transform_tree(self, bag, transform_topic : str = "/tf", static_transform_topic : str ="/tf_static"):
         """Processes the data in the supplied ROSBag, passed during object construction, and builds the
-        transform tree. This function must be called prior to any other class methods.
+        transform tree. This function must be called prior to any other class methods. Depending on the 
+        bag size, this can take a while.
 
         Args:
             bag (rosbag object): an opened ROSbag object containing the transform data to be processed.
@@ -243,14 +244,10 @@ class ROSBagTransformer:
         self._all_transforms = []
 
         # Build transform tree
-        print("\nBuilding the transform tree")
         self._build_transform_tree(bag, transform_topic, static_transform_topic)
 
-        print("\nBuilt the following transform tree")
-        self._transforms_tree.show()
 
-
-    def show_treet(self):
+    def show_tree(self):
         self._transforms_tree.show()
 
     

@@ -76,8 +76,9 @@ class ROSBagExtractor:
         # Pre-process bag transforms or load existing bag transformer object
         bag_transformer_file = self.root_output_dir / ".rosdata" / "bag_transformer.pickle"
         if not bag_transformer_file.exists():
-            print("Processing the transforms")
+            print("Processing the Transforms... Building the transform tree")
             self.bag_transformer.build_transform_tree(self.bag, transform_topic, static_transform_topic)
+            print("\nBuilt the following transform tree")
             self.bag_transformer.show_tree()
 
             # save progress
