@@ -3,15 +3,18 @@
 ### IMPORT MODULES ###
 # import sys
 import csv
-from numpy.lib.npyio import save
 import yaml
 import rosbag
 import pathlib
 import numpy as np
+from tqdm import tqdm
+from tabulate import tabulate 
 import matplotlib.pyplot as plt
 
 from .rosbag_extractor import ROSBagExtractor
+from .rosbag_transformer import ROSBagTransformer
 from .rosbag_transformer import Status as RBTStatus
+
 
 
 ### FUNCTIONS ###
@@ -51,6 +54,52 @@ def extract_rosbag_data(bag_path : pathlib.Path, extraction_config_path : pathli
     print("Running Data Extraction\n")
     extractor = ROSBagExtractor(bag, extraction_config, root_output_dir)
     extractor.extract_data()
+
+
+def show_info(bag_path : pathlib.Path, **kwargs):
+
+    # Check to see if showing all information
+    show_all = all(x == False for x in kwargs.values())
+
+    # Open the ROS bag file
+    print("Opening ROS Bag")
+    bag = rosbag.Bag(bag_path, 'r')
+
+    # Builds and shows the transform tree
+    if show_all or ('transform_tree' in kwargs and kwargs['transform_tree']):
+        bag_transformer = ROSBagTransformer()
+        bag_transformer.build_transform_tree(bag)
+
+    # Report information for topics
+    if show_all or ('topic_info' in kwargs and kwargs['topic_info']):
+        print("\nExtracting Topic Information")
+
+        # Get topic info, contains tuple so create data structure to hold info
+        # which will be added to
+        topic_data = bag.get_type_and_topic_info()[1]
+        data = {x: {'type': topic_data[x][0], 'count': topic_data[x][1],
+            'connections': topic_data[x][2], 'frequency': topic_data[x][3],
+            'frames': []} for x in topic_data}
+        topic_count = 0
+        for topic in topic_data:
+            topic_count += data[topic]['count']
+
+        # Get frame if present for each topic
+        for topic, msg, _ in tqdm(bag.read_messages(), total=topic_count):
+            # add frame id to this topic if the message has a header and not already present in the list
+            # for this topic
+            if hasattr(msg, 'header') and msg.header.frame_id not in data[topic]['frames']:
+                data[topic]['frames'].append(msg.header.frame_id)
+
+        # Change data type for tabulate
+        data_table = [['Topic', 'Message Type', 'Message Count', 'Connections', 'Frequency', 'Transform Frames']]
+        for topic in data:
+            row = [topic] + list(data[topic].values())
+            data_table.append(row)
+        
+        print("\nTopic Information")
+        print(tabulate(data_table, headers='firstrow'))#, tablefmt='grid'))
+        print("")
 
 
 def visualise_pose_data(csv_file : pathlib.Path, save_file : pathlib.Path = None):

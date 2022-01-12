@@ -78,6 +78,7 @@ class ROSBagExtractor:
         if not bag_transformer_file.exists():
             print("Processing the transforms")
             self.bag_transformer.build_transform_tree(self.bag, transform_topic, static_transform_topic)
+            self.bag_transformer.show_tree()
 
             # save progress
             (bag_transformer_file.parent).mkdir(parents=True, exist_ok=True)
@@ -85,6 +86,8 @@ class ROSBagExtractor:
         else:
             print("Loading existing bag transformer")
             self.bag_transformer.load(bag_transformer_file)
+            print("The transform tree is")
+            self.bag_transformer.show_tree()
 
         # Extract dynamic transform data
         print("Extracting Transform Data")

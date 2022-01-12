@@ -249,6 +249,10 @@ class ROSBagTransformer:
         print("\nBuilt the following transform tree")
         self._transforms_tree.show()
 
+
+    def show_treet(self):
+        self._transforms_tree.show()
+
     
     def frame_exists(self, frame : str) -> bool:
         """Checks to see if a frame exists within the transform tree.
