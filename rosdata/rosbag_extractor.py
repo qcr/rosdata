@@ -342,10 +342,9 @@ class ROSBagExtractor:
         cv_bridge = CvBridge()
         topic_count = self.bag.get_message_count(topic_name)
         frame_list = [None]*topic_count # pre-allocate list memory
-        idx = 0
 
         # Loop through bag
-        for idx, _, msg, t in enumerate(tqdm(self.bag.read_messages(topics=[topic_name]), total=topic_count)):
+        for idx, (_, msg, t) in enumerate(tqdm(self.bag.read_messages(topics=[topic_name]), total=topic_count)):
             # Create image filename
             timestamp_str = str(t.to_sec()).replace(".", "_")
             image_filename = (filename_template%(idx)).replace("<ros_timestamp>", timestamp_str) + ".jpeg"
@@ -355,7 +354,7 @@ class ROSBagExtractor:
                 cv_image = cv_bridge.imgmsg_to_cv2(msg, "bgr8")
                 cv2.imwrite(str(output_dir / image_filename), cv_image)
             except CvBridgeError:
-                rospy.logwarn("Unable to convert image {image_count}")
+                print("Unable to convert image %d"%(idx))
 
             # Add image to image_list
             frame_list[idx] = [image_filename, t.to_sec()]
@@ -388,7 +387,7 @@ class ROSBagExtractor:
         frame_list = [None]*topic_count # pre-allocate list memory
 
         # Loop through bag
-        for idx, _, msg, t in enumerate(tqdm(self.bag.read_messages(topics=[topic_name]), total=topic_count)):
+        for idx, (_, msg, t) in enumerate(tqdm(self.bag.read_messages(topics=[topic_name]), total=topic_count)):
             # Create image filename
             timestamp_str = str(t.to_sec()).replace(".", "_")
             image_filename = (filename_template%(idx)).replace("<ros_timestamp>", timestamp_str) + ".jpeg"
@@ -429,7 +428,7 @@ class ROSBagExtractor:
         frame_list = [None]*topic_count # pre-allocate list memory
 
         # Loop through bag
-        for idx, _, msg, t in enumerate(tqdm(self.bag.read_messages(topics=[topic_name]), total=topic_count)):
+        for idx, (_, msg, t) in enumerate(tqdm(self.bag.read_messages(topics=[topic_name]), total=topic_count)):
             # Create pointcloud filename
             timestamp_str = str(t.to_sec()).replace(".", "_")
             pcd_filename = (filename_template%(idx)).replace("<ros_timestamp>", timestamp_str) + ".ply"
@@ -490,8 +489,7 @@ class ROSBagExtractor:
 
         # get transform for each
         filelist_with_data = [None]*len(filelist) # pre-allocate memory
-        for idx, frame in enumerate(tqdm(filelist)): 
-            print(frame)
+        for idx, frame in enumerate(tqdm(filelist)):
             timestamp, chain_differential, transform, status = self.bag_transformer.lookup_transform(parent_frame, child_frame, frame[1],
                 method=method, lookup_limit=lookup_limit, chain_limit=chain_limit)
             filelist_with_data[idx] = [frame[0], frame[1], transform, status, timestamp, chain_differential]
