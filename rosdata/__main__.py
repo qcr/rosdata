@@ -28,8 +28,9 @@ def main():
 
     p_visualise = sp.add_parser('visualise', help='Visualise extracted data.')
     p_visualise.add_argument('csv_file', type=str, help="the path to the CSV file that wish to visualise.")
-    p_visualise.add_argument('-d', '--data', type=str, help='specify the type of data you wish to visualise. Options are pose, chain_diff, or lookup_diff. Default is pose', default='pose')
-    p_visualise.add_argument('-s', '--save', type=str, help="the filepath to save the generated figure.")
+    p_visualise.add_argument('-t', '--type', type=str, help='specify the type of data you wish to visualise. Options are pose, chain_diff, or lookup_diff. Default is pose', default='pose')
+    p_visualise.add_argument('-s', '--save', nargs='?', type=str, help="set to save the figure. A filename can be provided and if no file name is provided, it will default to the name of the CSV file with the extension \'.png\'.", default=None)
+    p_visualise.add_argument('-d', '--dir', nargs='?', type=str, help="used to set the save directory. Defaults to the same directory as the CSV file.", default=None)
 
 
     args = p.parse_args()
@@ -49,12 +50,19 @@ def main():
         show_info(pathlib.Path(args.rosbag), **info_optional_args)
 
     elif args.mode.lower() == "visualise":
-        if args.data.lower() == "pose":
-            visualise_pose_data(args.csv_file, args.save)
-        if args.data.lower() == "chain_diff":
-            visualise_chain_differential_data(args.csv_file, args.save)
-        if args.data.lower() == "lookup_diff":
-            visualise_lookup_differential_data(args.csv_file, args.save)
+        save_dir = pathlib.Path(args.csv_file).parent
+        if args.dir is not None:
+            save_dir = pathlib.Path(args.dir)
+        save_filename = pathlib.Path(args.csv_file).stem
+        if args.save is not None:
+            save_filename = args.save
+
+        if args.type.lower() == "pose":
+            visualise_pose_data(args.csv_file, save_dir/save_filename)
+        if args.type.lower() == "chain_diff":
+            visualise_chain_differential_data(args.csv_file, save_dir/save_filename)
+        if args.type.lower() == "lookup_diff":
+            visualise_lookup_differential_data(args.csv_file, save_dir/save_filename)
 
 
 if __name__ == '__main__':
