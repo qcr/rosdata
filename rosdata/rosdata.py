@@ -11,6 +11,10 @@ from tqdm import tqdm
 from tabulate import tabulate 
 import matplotlib.pyplot as plt
 
+import cv2
+import imutils
+import spatialmath as sm
+
 from .rosbag_extractor import ROSBagExtractor
 from .rosbag_transformer import ROSBagTransformer
 from .rosbag_transformer import Status as RBTStatus
@@ -115,8 +119,8 @@ def visualise_pose_data(csv_file : pathlib.Path, save_file : pathlib.Path = None
     data = []
 
     # Open and read in csv file
-    with open(str(csv_file), newline='') as csvfile:
-        reader = csv.reader(csvfile, delimiter=',')
+    with open(str(csv_file), newline='') as f:
+        reader = csv.reader(f, delimiter=',')
         for idx, row in enumerate(reader):
             if idx == 0:
                 # first line is header, use to get start position of pose data
@@ -129,6 +133,9 @@ def visualise_pose_data(csv_file : pathlib.Path, save_file : pathlib.Path = None
             else:
                 if not 'None' in row[start_idx:start_idx+7]:
                     data.append(row[start_idx:start_idx+7])
+        
+        # close file
+        f.close()
 
     # Convert to numpy array
     data = np.array(data, dtype=np.float)
@@ -167,8 +174,8 @@ def visualise_chain_differential_data(csv_file : pathlib.Path, save_file : pathl
     status_data = []
 
     # Open and read in csv file
-    with open(str(csv_file), newline='') as csvfile:
-        reader = csv.reader(csvfile, delimiter=',')
+    with open(str(csv_file), newline='') as f:
+        reader = csv.reader(f, delimiter=',')
         for idx, row in enumerate(reader):
             if idx == 0:
                 # first line is header, use to get position of chain differential data
@@ -189,6 +196,9 @@ def visualise_chain_differential_data(csv_file : pathlib.Path, save_file : pathl
                 
                 if status_idx != None:
                     status_data.append(row[status_idx])
+        
+        # close file
+        f.close()
 
     # Convert to numpy array
     success_data = np.array(success_data, dtype=np.object)
@@ -227,8 +237,8 @@ def visualise_lookup_differential_data(csv_file : pathlib.Path, save_file : path
     data = []
 
     # Open and read in csv file
-    with open(str(csv_file), newline='') as csvfile:
-        reader = csv.reader(csvfile, delimiter=',')
+    with open(str(csv_file), newline='') as f:
+        reader = csv.reader(f, delimiter=',')
         for idx, row in enumerate(reader):
             if idx == 0:
                 # first line is header, use to get position of frame_timestamp and transform_timestamp data
@@ -241,6 +251,9 @@ def visualise_lookup_differential_data(csv_file : pathlib.Path, save_file : path
             else:
                 if row[frame_timestamp_idx] != 'None' and row[transform_timestamp_idx] != 'None':
                     data.append(float(row[transform_timestamp_idx]) - float(row[frame_timestamp_idx]))
+        
+        # close file
+        f.close()
 
     # Convert to numpy array
     data = np.array(data, dtype=np.float)
@@ -255,6 +268,95 @@ def visualise_lookup_differential_data(csv_file : pathlib.Path, save_file : path
     if save_file is not None:
         plt.savefig(str(save_file))
     plt.show()
+
+
+def rotate_images(data : pathlib.Path, rot_amount : float, csv_file : pathlib.Path = None, rot_trans : list = None, overwrite : bool = False):
+
+    # Get filenames from directory
+    filenames = sorted([f.name for f in data.iterdir() if f.is_file()])
+    
+    # Open csv file if provided
+    csv_data = []
+    if csv_file is not None:
+        with open(str(csv_file), newline='') as f:
+            reader = csv.reader(f, delimiter=',')
+            for row in reader:
+                csv_data.append(row)
+        f.close()
+
+        # Check same filenames exists
+        csv_filenames = [f[0] for f in csv_data[1:]]
+        if set(filenames) != set(csv_filenames):
+            print("ERROR! The filenames in the provided data folder and those in the CSV file are not identical.")
+            return 
+
+    # Get rotated image output directory and run check
+    output_dir = data.parent / (data.name + "_rotated")
+    if overwrite:
+        output_dir = data
+
+    if output_dir.exists() and overwrite == False:
+        if yes_or_no("The folder \'%s\' already exists. These images have most likely been rotated previously. Would you like to remove this folder and rotate the images"%(output_dir)):
+            rmdir(output_dir)
+        else:
+            print("Aborting operation")
+            return
+    
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True)
+
+    # Rotate each image
+    print("\nRotating Images")
+    for filename in tqdm(filenames):
+        # Open image and rotate
+        img = cv2.imread(str(data / filename))
+        img_rot = imutils.rotate(img, rot_amount)
+
+        # Save image
+        cv2.imwrite(str(output_dir / filename), img_rot)
+
+    # No need to continue if csv_file is none
+    if csv_file == None:
+        return
+
+    # Get output csv file
+    output_csv = csv_file.parent / (csv_file.stem + "_rotated.csv")
+    if overwrite:
+        output_csv = csv_file
+    
+    # Apply transform to CSV Data
+    apply_transform = sm.SE3.Eul(rot_trans, unit='deg')
+    pos_x_idx = csv_data[0].index("pos_x") # starting position of pose data
+    with open(output_csv, 'w', newline='') as f: 
+        # create csvwriter object and write header
+        csvwriter = csv.writer(f, delimiter=',')
+        csvwriter.writerow(csv_data[0])
+
+        # loop through data
+        for data in csv_data[1:]:
+            # Get current transform data
+            transform_data = data[pos_x_idx:pos_x_idx+7]
+            if 'None' in transform_data:
+                # write out same as before, and go onto next
+                csvwriter.writerow(data)
+                continue
+            transform_data = [float(x) for x in transform_data]
+            
+            # create SE3 for current pose
+            curr_pose = sm.SE3(transform_data[0:3])
+            curr_pose.A[:3, :3] = sm.base.q2r(transform_data[3:])
+            
+            # Apply transform and get position and quat
+            new_pose = curr_pose * apply_transform
+            pos = new_pose.A[:3, -1]
+            quat = sm.base.r2q(new_pose.A[:3,:3])
+
+            # Copy new pose into data and save
+            data[pos_x_idx:pos_x_idx+7] = list(pos) + list(quat)
+            csvwriter.writerow(data)
+
+        # close file
+        f.close()
 
 
 ### HELPER FUNCTIONS ###
