@@ -460,7 +460,7 @@ class ROSBagTransformer:
                 
                 # loop through remaining transforms in most recent transforms list
                 for idy, x in enumerate(most_recent_transforms[1:], start=1):
-                    tot_transform = x.transform * tot_transform # total transform of the chain 
+                    tot_transform = tot_transform * x.transform # total transform of the chain 
                     timestamps[idy, 0] = x.timestamp
                     timestamps[idy,1] = self.static_transform(transform_chain[idy][0], transform_chain[idy][1])
                 
