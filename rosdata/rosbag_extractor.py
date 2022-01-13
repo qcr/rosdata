@@ -186,7 +186,7 @@ class ROSBagExtractor:
 
                 # create csvwriter object and write header
                 csvwriter = csv.writer(csvfile, delimiter=',')
-                csvwriter.writerow(["parent_frame", "child_frame", "timestamp", "pos_x", "pos_y", "pos_z", "quat_x", "quat_y", "quat_z", "quat_w", "chain_differential"])
+                csvwriter.writerow(["parent_frame", "child_frame", "timestamp", "pos_x", "pos_y", "pos_z", "quat_w", "quat_x", "quat_y", "quat_z", "chain_differential"])
 
                 # Write transform list
                 for transform in transform_list:
