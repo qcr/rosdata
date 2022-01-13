@@ -4,6 +4,7 @@
 # import os
 # import sys
 import csv
+from numpy.lib.function_base import extract
 import yaml
 import dill
 import pathlib
@@ -463,6 +464,16 @@ class ROSBagExtractor:
         child_frame = topic_frame_id # default to the frame id in the message for the child frame
         if "child_frame" in self.extraction_config[topic_key]["transform"].keys():
             child_frame = self.extraction_config[topic_key]["transform"]["child_frame"]
+
+        # check to see if transform frames exist
+        if not self.bag_transformer.frame_exists(parent_frame) or not self.bag_transformer.frame_exists(child_frame):
+            print("\tERROR! The transform between \'%s\' and \'%s\' does not exist. Cannot write out transform file for topic \'%s\'."%(parent_frame, child_frame, self.extraction_config[topic_key]['topic_name']))
+
+            # remove transfer dict from extraction config so doesn't get save, then if user tries
+            # to rerun the extraction this data is seen as not having been extracted yet
+            if 'transform' in self.extraction_config[topic_key].keys():
+                del self.extraction_config[topic_key]['transform']
+            return
 
         # get transform selection method type and limits
         method = "interpolate" # default
