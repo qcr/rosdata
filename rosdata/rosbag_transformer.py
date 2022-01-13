@@ -110,45 +110,36 @@ class ROSBagTransformer:
 
         # Loop through all tf and static tf messages and get all frames that have children,
         # store data as dictionary in self._frame_dict
-        total_time = int(bag.get_end_time() - bag.get_start_time())
-        current_time = 0
-        with tqdm(total=total_time) as pbar:
-            for topic, msg, t in bag.read_messages(topics=[transform_topic, static_transform_topic]):
-                # Update the progress bar
-                if current_time < int(t.to_sec() - bag.get_start_time()):
-                    n = int(t.to_sec()- bag.get_start_time()) - current_time
-                    current_time += n
-                    pbar.update(n)
-                else:
-                    pbar.update(0)
+        topic_count = bag.get_message_count(transform_topic) + bag.get_message_count(static_transform_topic)
+        for topic, msg, t in tqdm(bag.read_messages(topics=[transform_topic, static_transform_topic]), total=topic_count):
+            
+            # check whether it is a static transform
+            static_transform = topic == static_transform_topic
 
-                # check whether it is a static transform
-                static_transform = topic == static_transform_topic
+            # loop through all transforms in message
+            for transform in msg.transforms:
 
-                # loop through all transforms in message
-                for transform in msg.transforms:
+                # get parent and child frame
+                parent_frame = transform.header.frame_id.strip("/")
+                child_frame = transform.child_frame_id.strip("/")
 
-                    # get parent and child frame
-                    parent_frame = transform.header.frame_id.strip("/")
-                    child_frame = transform.child_frame_id.strip("/")
+                # add parent frame as a key the dict if it does not exist
+                if parent_frame not in self._frames_dict.keys():
+                    self._frames_dict[parent_frame] = []
 
-                    # add parent frame as a key the dict if it does not exist
-                    if parent_frame not in self._frames_dict.keys():
-                        self._frames_dict[parent_frame] = []
+                # add child as a value to parent if it does not exist
+                if child_frame not in self._frames_dict[parent_frame]:
+                    self._frames_dict[parent_frame].append(child_frame)
 
-                    # add child as a value to parent if it does not exist
-                    if child_frame not in self._frames_dict[parent_frame]:
-                        self._frames_dict[parent_frame].append(child_frame)
+                # add child as key to transform dictionary if it doesn't exist
+                if child_frame not in self._transforms.keys():
+                    self._transforms[child_frame] = Transforms(parent_frame, child_frame, static_transform)
 
-                    # add child as key to transform dictionary if it doesn't exist
-                    if child_frame not in self._transforms.keys():
-                        self._transforms[child_frame] = Transforms(parent_frame, child_frame, static_transform)
+                # add the transform to the transforms object associated with this child frame
+                self._transforms[child_frame].add_transform(t, transform.transform)
 
-                    # add the transform to the transforms object associated with this child frame
-                    self._transforms[child_frame].add_transform(t, transform.transform)
-
-                    # add the transform to the list of all transforms
-                    self._all_transforms.append([[parent_frame, child_frame], t.to_sec(), self._transforms[child_frame].transforms[-1]])
+                # add the transform to the list of all transforms
+                self._all_transforms.append([[parent_frame, child_frame], t.to_sec(), self._transforms[child_frame].transforms[-1]])
 
         # sort all transforms into time order
         self._all_transforms = sorted(self._all_transforms, key=lambda x: x[1])
