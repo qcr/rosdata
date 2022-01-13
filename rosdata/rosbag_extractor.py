@@ -509,7 +509,7 @@ class ROSBagExtractor:
 
             # create csvwriter object and write header
             csvwriter = csv.writer(csvfile, delimiter=',')
-            csvwriter.writerow(["filename", "parent_frame", "child_frame", "frame_timestamp", "pos_x", "pos_y", "pos_z", "quat_x", "quat_y", "quat_z", "quat_w", "transform_timestamp", "chain_differential", "status"])
+            csvwriter.writerow(["filename", "parent_frame", "child_frame", "frame_timestamp", "pos_x", "pos_y", "pos_z", "quat_w", "quat_x", "quat_y", "quat_z", "transform_timestamp", "chain_differential", "status"])
 
             # Write transform list
             for idx, data in enumerate(filelist_with_data):
