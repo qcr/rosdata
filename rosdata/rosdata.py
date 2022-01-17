@@ -394,3 +394,171 @@ def rmdir(dir : pathlib.Path):
         else:
             item.unlink()
     dir.rmdir()
+
+
+
+class CSVROSData():
+    """A class to make the data contained within a ROS Data CSV file more accessible
+    """
+
+    def __init__(self, fields : list) -> None:
+        """Initialises a CSVROSData object with the provided fields (CSV Header)
+
+        Args:
+            fields (list): a list containing the header row from the CSV file
+        """
+
+        # Variables
+        self._data = []
+        self._field_index_map = {field: idx for idx, field in enumerate(fields)}
+
+    def add_row(self, data : list) -> None:
+        """Adds a row from the CSV file to the object. Will attempt to convert all 
+        values within the data to floats if possible. If a value cannot be converted,
+        that particalur value will remain as a string.
+
+        Args:
+            data (list): the row from the CSV file
+        """
+
+        data_cvt = []
+        for val in data:
+            if val.lower() != 'none':
+                try:
+                    val = float(val)
+                except ValueError as e:
+                    pass # couldn't convert to float, so moving on
+            else:
+                val = None
+            data_cvt.append(val)
+
+        # add data list to list
+        self._data.append(data_cvt)
+
+    def get_transform(self, index : int) -> sm.SE3():
+        """Gets the transform (spatialmath.SE3 object) for the given index.
+
+        Args:
+            index (int): the index for the desired transform
+
+        Returns:
+            spatialmath.SE3: returns a spatialmath.SE3 object with the given transform,
+                             or None if a transform does not exist for this index.
+        """
+
+        # pos_x index
+        pos_x_idx = self._field_index_map['pos_x']
+
+        # transform data
+        transform_data = self._data[index][pos_x_idx:pos_x_idx+7]
+        if None in transform_data:
+            return None
+
+        # Create SE3 object
+        se3 = sm.SE3(transform_data[0:3])
+        se3.A[:3, :3] = sm.base.q2r(transform_data[3:])
+
+        return se3
+
+    def field_exists(self, field : str) -> bool:
+        """Checks to see if a field exists within this CSV data
+
+        Args:
+            field (str): the field
+
+        Returns:
+            bool: true if the field exists
+        """
+
+        if field in self._field_index_map.keys():
+            return True
+        return False
+
+    def get_data(self, item, *args):
+        """Gets the entire data for a specific index, or the value for a field for a index, or
+        gets the field for the entire data (e.g., all timestamps).
+
+        Args:
+            item (int or str): the index or field you want
+            args (optional, int or str): add the index or field if want more specifity
+
+        Raises:
+            ValueError: if a type other than a string or int is provided
+            ValueError: if too many arguments are provided
+
+        Returns:
+            variable: either the data (list) for a given index, the value for a given index/field or the data (list)
+                for a field across all indices.
+        """
+        
+        if len(args) == 0:
+            if isinstance(item, int):
+                # assume item is an index into the data
+                return self._data[item]
+            elif isinstance(item, str):
+                # assume item is a field and want all fields
+                return [x[self._field_index_map[item]] for x in self._data]
+        elif len(args) == 1:
+            if isinstance(item, int) and isinstance(args[0], str):
+                return self._data[item][self._field_index_map[args[0]]] # return index and specific field
+            elif isinstance(item, str) and isinstance(args[0], int):
+                return self._data[args[0]][self._field_index_map[item]] # return index and specific field
+            else:
+                raise ValueError("The function only takes an int, a string, or an int and a string as arguments.")
+        else:
+            raise ValueError("Too many arguments. The function only takes 1 or two arguments.")
+        
+
+
+    def __getitem__(self, item):
+        """Can be used as a shorthand for the get_data method. Examples:
+            csvrosdata_obj[0] equivalent to csvrosdata_obj.get_data(0)
+            csvrosdata_obj['timestamp'] equivalent to csvrosdata_obj.get_data('timestamp')
+            csvrosdata_obj[0, 'timestamp'] equivalent to csvrosdata_obj.get_data(0, 'timestamp')
+            csvrosdata_obj['timestamp', 0] equivalent to csvrosdata_obj.get_data('timestamp', 0)
+        """
+
+        if isinstance(item, int) or isinstance(item, str):
+            return self.get_data(item)
+        elif isinstance(item, tuple):
+            return self.get_data(*item)
+
+
+    def __len__(self) -> int:
+        """returns the length of the data
+
+        Returns:
+            int: the length of the data
+        """
+
+        return len(self._data)
+
+
+
+
+def read_rosdata_csv(csvfile : str) -> CSVROSData:
+    """A helper function to read a ROS Data CSV file and return
+    a CSVROSData object.
+
+    Args:
+        csvfile (str): the ROS Data CSV file to be read
+
+    Returns:
+        CSVROSData: a CSVROSData object
+    """
+
+    # Return value
+    retval = None
+
+    # Read CSV file
+    with open(csvfile, newline='') as f:
+        csvreader = csv.reader(f, delimiter=',')
+        for idx, row in enumerate(csvreader):
+            if idx == 0:
+                retval = CSVROSData(row)
+            else:
+                retval.add_row(row)
+        f.close()
+
+    # return
+    return retval
