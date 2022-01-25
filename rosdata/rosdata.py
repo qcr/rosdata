@@ -325,7 +325,7 @@ def rotate_images(data : pathlib.Path, rot_amount : float, csv_file : pathlib.Pa
         output_csv = csv_file
     
     # Apply transform to CSV Data
-    apply_transform = sm.SE3.Eul(rot_trans, unit='deg', order='xyz')
+    apply_transform = sm.SE3.Rx(rot_trans[0], unit='deg') * sm.SE3.Ry(rot_trans[1], unit='deg') * sm.SE3.Rz(rot_trans[2], unit='deg')
     pos_x_idx = csv_data[0].index("pos_x") # starting position of pose data
     with open(output_csv, 'w', newline='') as f: 
         # create csvwriter object and write header
