@@ -1,3 +1,5 @@
+tree_root: map # only required if there are multiple roots in the transform tree
+
 transform_0:
   parent_frame: map
   child_frame: base_link

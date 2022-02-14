@@ -60,7 +60,7 @@ def extract_rosbag_data(bag_path : pathlib.Path, extraction_config_path : pathli
     extractor.extract_data()
 
 
-def show_info(bag_path : pathlib.Path, **kwargs):
+def show_info(bag_path : pathlib.Path, tree_root : str, **kwargs):
 
     # Check to see if showing all information
     show_all = all(x == False for x in kwargs.values())
@@ -73,7 +73,7 @@ def show_info(bag_path : pathlib.Path, **kwargs):
     if show_all or ('transform_tree' in kwargs and kwargs['transform_tree']):
         print("Processing the Transforms... Building the transform tree")
         bag_transformer = ROSBagTransformer()
-        bag_transformer.build_transform_tree(bag)
+        bag_transformer.build_transform_tree(bag, tree_root=tree_root)
         print("\nBuilt the following transform tree")
         bag_transformer.show_tree()
 

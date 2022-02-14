@@ -97,14 +97,19 @@ class ROSBagTransformer:
         
 
         
-    def _build_transform_tree(self, bag, transform_topic : str, static_transform_topic : str):
+    def _build_transform_tree(self, bag, transform_topic : str, static_transform_topic : str, tree_root : str = None):
         """A private function used to help process the transform data in the supplied ROSBag.
          This function must be called prior to any other class methods.
 
         Args:
             bag (rosbag object): an opened ROSbag object containing the transform data to be processed.
-            transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf".
-            static_transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf_static".
+            transform_topic (str): used to specify the transform topic.
+            static_transform_topic (str): used to specify the transform topic.
+            tree_root (str, optional): used to specify the name of the frame that is the root of the tree. Defaults to none.
+
+        Raises:
+            RuntimeError: if there are multiple tree roots and a tree root was not specified.
+            ValueError: if the specified tree root is not present in the transform tree.
         """
 
 
@@ -146,16 +151,26 @@ class ROSBagTransformer:
 
 
         # Determine the absolute root of the tree
-        for tmp_root_frame in self._frames_dict.keys():
-            found_key = False
-            for searching_parent_frames in self._frames_dict.keys():
-                if tmp_root_frame in self._frames_dict[searching_parent_frames]:
-                    found_key = True
-                    break
-        
-            if found_key == False:
-                root = tmp_root_frame
-                break
+        if tree_root is None:
+            roots = []
+            for tmp_root_frame in self._frames_dict.keys():
+                found_key = False
+                for searching_parent_frames in self._frames_dict.keys():
+                    if tmp_root_frame in self._frames_dict[searching_parent_frames]:
+                        found_key = True
+                        break
+            
+                if found_key == False:
+                    roots.append(tmp_root_frame)
+
+            root = roots[0]
+            if len(roots) > 1:
+                roots_str = ' ,'.join(roots).join(("[","]"))
+                raise RuntimeError("The transform tree in the supplied rosbag has multiple tree roots. Automatic selection of the root cannot occur, please specify the root of the tree. Possible tree roots are: %s"%(roots_str))
+        else:
+            if tree_root not in self._frames_dict.keys():
+                raise ValueError("The specified tree root \'%s\' does not exist in the transform tree."%(tree_root))
+            root = tree_root
         
         # Establish root of the transform tree
         self._transforms_tree.create_node(tag=root, identifier=root)
@@ -217,7 +232,7 @@ class ROSBagTransformer:
         self.__dict__.update(tmp_dict)
 
 
-    def build_transform_tree(self, bag, transform_topic : str = "/tf", static_transform_topic : str ="/tf_static"):
+    def build_transform_tree(self, bag, transform_topic : str = "/tf", static_transform_topic : str ="/tf_static" , tree_root : str = None):
         """Processes the data in the supplied ROSBag, passed during object construction, and builds the
         transform tree. This function must be called prior to any other class methods. Depending on the 
         bag size, this can take a while.
@@ -226,6 +241,11 @@ class ROSBagTransformer:
             bag (rosbag object): an opened ROSbag object containing the transform data to be processed.
             transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf".
             static_transform_topic (str, optional): used to specify the transform topic. Defaults to "/tf_static".
+            tree_root (str, optional): used to specify the name of the frame that is the root of the tree. Defaults to none, which will automatically try and determine the tree root.
+
+        Raises:
+            RuntimeError: if there are multiple tree roots and a tree root was not specified.
+            ValueError: if the specified tree root is not present in the transform tree.
         """
 
         # Reset variables
@@ -235,7 +255,7 @@ class ROSBagTransformer:
         self._all_transforms = []
 
         # Build transform tree
-        self._build_transform_tree(bag, transform_topic, static_transform_topic)
+        self._build_transform_tree(bag, transform_topic, static_transform_topic, tree_root)
 
 
     def show_tree(self):

@@ -18,6 +18,7 @@ def main():
     p_info.add_argument('rosbag', type=str, help="the ROS Bag file to show information for.")
     p_info.add_argument('-t', '--transform_tree', action='store_true', help='set to build and show the transform tree.')
     p_info.add_argument('-i', '--topic_info', action='store_true', help='set to show the topic info (number of message, message type and the transform frame(s) associated with the message, if present)')
+    p_info.add_argument('-r', '--root', type=str, help='used to specify the root of the transform tree. Defaults to none which will attempt to automatically identify the tree root.', default=None)
 
     # Extraction Tool arguments
     p_extract = sp.add_parser('extract', description='Extract data from a ROSBag.', help='Extract data from a ROSBag.')
@@ -58,8 +59,8 @@ def main():
     
     elif args.mode.lower() == "info":
         # get only the optional arguments for info mode as a dictionary
-        info_optional_args = {x: args.__dict__[x] for x in args.__dict__ if x not in ['mode', 'rosbag']}
-        show_info(pathlib.Path(args.rosbag), **info_optional_args)
+        info_optional_args = {x: args.__dict__[x] for x in args.__dict__ if x not in ['mode', 'rosbag', 'root']}
+        show_info(pathlib.Path(args.rosbag), args.root, **info_optional_args)
 
     elif args.mode.lower() == "manipulate":
         if args.action.lower() == "rot_images":
