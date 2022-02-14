@@ -116,14 +116,21 @@ topic_<id>:
     message_type: <ros_message_type> # required - determines the data extraction method
     output_destination: <relative_destination> # optional - used to specify a directory relative to the root output directory to save the topic data. Defaults to the root_output_directory/topic_<id>.
     filename_template: <filename_template> # optional - used as a filename template string (e.g. `image_%06d-<ros_timestamp>`), the appropriate file_extenstion will be automatically appended. Only a single topic index and ROS timestamp can be included in the template. Use the Python `%d` string formatter, or derivate of, to specify the topic index and use `<ros_timestamp>` to include the ROS topic timestamp as a string which will be in the format `<seconds>_<nanaseconds>`. Defaults to `frame_%06d`
-    transform: # optional - only required if wish to output a CSV containing transform data associated with the topic
-        parent_frame: <parent_frame> # required - used to specify the parent/origin frame 
+    transforms: # optional - only required if wish to output a CSV(s) containing transform data associated with the topic. Can specify multiple transforms to generate multiple CSV files all with different parameters
+      - parent_frame: <parent_frame_1> # required - used to specify the parent/origin frame 
         child_frame: <child_frame>  # optional - used to specify the child/destination frame. Defaults to the frame ID stored in the topic
-        selection_method: <method> # optional - used to specify the method to determine the transform associated with each message within the topic. Options are exact, recent, nearest, and interpolate. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.
-        lookup_limit: <seconds> # optional - used to specify a lookup limit when determining the transform. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.
-        chain_limit: <seconds> # optional - used to specify a transform chain differential limit when determining the transform. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.
-        filename: <filename> # optional - used to specify a filename, the file extension .csv will be appended. Defaults to topic_<id>.csv
-        output_destination: <relative_destination> # optional - used to specify a directory relative to the root output directory to save the CSV file. Defaults to the root output directory.
+        selection_method: <method_1> # optional - used to specify the method to determine the transform associated with each message within the topic. Options are exact, recent, nearest, and interpolate. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.
+        lookup_limit: <seconds_1> # optional - used to specify a lookup limit when determining the transform. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.
+        chain_limit: <seconds_1> # optional - used to specify a transform chain differential limit when determining the transform. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.
+        filename: <filename_1> # optional - used to specify a filename, the file extension .csv will be appended. Defaults to topic_<id>.csv
+        output_destination: <relative_destination_1> # optional - used to specify a directory relative to the root output directory to save the CSV file. Defaults to the root output directory.
+      - parent_frame: <parent_frame_2> # required - used to specify the parent/origin frame 
+        child_frame: <child_frame>  # optional - used to specify the child/destination frame. Defaults to the frame ID stored in the topic
+        selection_method: <method_2> # optional - used to specify the method to determine the transform associated with each message within the topic. Options are exact, recent, nearest, and interpolate. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.
+        lookup_limit: <seconds_2> # optional - used to specify a lookup limit when determining the transform. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.
+        chain_limit: <seconds_2> # optional - used to specify a transform chain differential limit when determining the transform. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.
+        filename: <filename_2> # optional - used to specify a filename, the file extension .csv will be appended. Defaults to topic_<id>.csv
+        output_destination: <relative_destination_2> # optional - used to specify a directory relative to the root output directory to save the CSV file. Defaults to the root output directory.
 ```
 
 A complete example:
@@ -146,13 +153,20 @@ topic_0:
   filename_template: pcd_%06d-<ros_timestamp>
   output_destination: pointclouds
   transform:
-    parent_frame: map
-    child_frame: ouster1/os1_lidar
-    selection_method: interpolate
-    lookup_limit: 0.5
-    chain_limit: 1.0
-    filename: pointclouds
-    output_destination: data_files
+    - parent_frame: map
+      child_frame: ouster1/os1_lidar
+      selection_method: interpolate
+      lookup_limit: 0.5
+      chain_limit: 1.0
+      filename: pointclouds_map_poses
+      output_destination: data_files
+    - parent_frame: base_link
+      child_frame: ouster1/os1_lidar
+      selection_method: interpolate
+      lookup_limit: None
+      chain_limit: None
+      filename: pointclouds_baselink_poses
+      output_destination: data_files
 
 topic_1:
   topic_name: /pylon_camera_node/image_raw

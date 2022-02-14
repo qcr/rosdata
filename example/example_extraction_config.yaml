@@ -14,14 +14,21 @@ topic_0:
   message_type: sensor_msgs/PointCloud2
   filename_template: pcd_%06d-<ros_timestamp>
   output_destination: pointclouds
-  transform:
-    parent_frame: map
-    child_frame: ouster1/os1_lidar
-    selection_method: interpolate
-    lookup_limit: 0.5
-    chain_limit: 1.0
-    filename: pointclouds
-    output_destination: data_files
+  transforms:
+    - parent_frame: map
+      child_frame: ouster1/os1_lidar
+      selection_method: interpolate
+      lookup_limit: 0.5
+      chain_limit: 1.0
+      filename: pointclouds_map_poses
+      output_destination: data_files
+    - parent_frame: chassis_link
+      child_frame: ouster1/os1_lidar
+      selection_method: interpolate
+      lookup_limit: None
+      chain_limit: None
+      filename: pointclouds_baselink_poses
+      output_destination: data_files
 
 topic_1:
   topic_name: /pylon_camera_node/image_raw

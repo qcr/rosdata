@@ -523,7 +523,7 @@ class ROSBagTransformer:
         # if entire transform chain is static, transform never changes
         if self._static_transform_chain:
             # return desired time, chain differential of 0.0, transform and success
-            time, 0.0, self._transforms_list[0][2], Status.SUCCESS        
+            return time, 0.0, self._transforms_list[0][2], Status.SUCCESS        
 
         # get time difference between the list and desired time
         time_diff = self._transforms_list[:,0] - time

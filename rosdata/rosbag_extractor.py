@@ -296,8 +296,8 @@ class ROSBagExtractor:
                 print("Unknown message type %s. Ignoring topic data extraction"%(topic_name))
 
             # output transform list if required
-            if "transform" in self.extraction_config[topic_key].keys():
-                print("\tWriting out transform file for topic %s"%(topic_name))
+            if "transforms" in self.extraction_config[topic_key].keys():
+                print("\tWriting out transform file(s) for topic %s"%(topic_name))
                 self._write_topic_transform_file(topic_key, topic_frame_id, filelist, output_dir)
 
             # update extraction state and save 
@@ -458,87 +458,90 @@ class ROSBagExtractor:
             output_dir (pathlib.Path): the output directory to write this data to.
         """
 
-        # get transform data from extraction config
-        parent_frame = self.extraction_config[topic_key]["transform"]["parent_frame"]
+        csv_transforms_list = self.extraction_config[topic_key]['transforms']
 
-        child_frame = topic_frame_id # default to the frame id in the message for the child frame
-        if "child_frame" in self.extraction_config[topic_key]["transform"].keys():
-            child_frame = self.extraction_config[topic_key]["transform"]["child_frame"]
+        for idx, csv_transform in enumerate(csv_transforms_list):
 
-        # check to see if transform frames exist
-        if not self.bag_transformer.frame_exists(parent_frame) or not self.bag_transformer.frame_exists(child_frame):
-            print("\tERROR! The transform between \'%s\' and \'%s\' does not exist. Cannot write out transform file for topic \'%s\'."%(parent_frame, child_frame, self.extraction_config[topic_key]['topic_name']))
+            # get transform data from extraction config
+            parent_frame = csv_transform["parent_frame"]
 
-            # remove transfer dict from extraction config so doesn't get save, then if user tries
-            # to rerun the extraction this data is seen as not having been extracted yet
-            if 'transform' in self.extraction_config[topic_key].keys():
-                del self.extraction_config[topic_key]['transform']
-            return
+            child_frame = topic_frame_id # default to the frame id in the message for the child frame
+            if "child_frame" in csv_transform.keys():
+                child_frame = csv_transform["child_frame"]
 
-        # get transform selection method type and limits
-        method = "interpolate" # default
-        if "selection_method" in self.extraction_config[topic_key]["transform"].keys():
-            method = self.extraction_config[topic_key]["transform"]["selection_method"]
+            # check to see if transform frames exist
+            if not self.bag_transformer.frame_exists(parent_frame) or not self.bag_transformer.frame_exists(child_frame):
+                print("\tERROR! The transform between \'%s\' and \'%s\' does not exist. Cannot write out transform file for topic \'%s\'."%(parent_frame, child_frame, self.extraction_config[topic_key]['topic_name']))
 
-        lookup_limit = None # default
-        if "lookup_limit" in self.extraction_config[topic_key]["transform"].keys():
-            lookup_limit = self.extraction_config[topic_key]["transform"]["lookup_limit"]
-            if isinstance(lookup_limit, str):
-                if lookup_limit.lower() == "none":
-                    lookup_limit = None
-                else:
-                    raise ValueError("The value for the lookup limit parameter must be NULL, None or a float. It cannot be a string.")
+                # remove transfer dict from extraction config so doesn't get save, then if user tries
+                # to rerun the extraction this data is seen as not having been extracted yet
+                del self.extraction_config[topic_key]['transforms'][idx]
+                continue # move onto next transform
 
-        chain_limit = None # default
-        if "chain_limit" in self.extraction_config[topic_key]["transform"].keys():
-            chain_limit = self.extraction_config[topic_key]["transform"]["chain_limit"]
-            if isinstance(chain_limit, str):
-                if chain_limit.lower() == "none":
-                    chain_limit = None
-                else:
-                    raise ValueError("The value for the chain limit parameter must be NULL, None or a float. It cannot be a string.")
+            # get transform selection method type and limits
+            method = "interpolate" # default
+            if "selection_method" in csv_transform.keys():
+                method = csv_transform["selection_method"]
 
-        # get transform for each
-        filelist_with_data = [None]*len(filelist) # pre-allocate memory
-        for idx, frame in enumerate(tqdm(filelist)):
-            timestamp, chain_differential, transform, status = self.bag_transformer.lookup_transform(parent_frame, child_frame, frame[1],
-                method=method, lookup_limit=lookup_limit, chain_limit=chain_limit)
-            filelist_with_data[idx] = [frame[0], frame[1], transform, status, timestamp, chain_differential]
+            lookup_limit = None # default
+            if "lookup_limit" in csv_transform.keys():
+                lookup_limit = csv_transform["lookup_limit"]
+                if isinstance(lookup_limit, str):
+                    if lookup_limit.lower() == "none":
+                        lookup_limit = None
+                    else:
+                        raise ValueError("The value for the lookup limit parameter must be NULL, None or a float. It cannot be a string.")
 
-        # set output destination and filename
-        filename = topic_key + ".csv" # default
-        if "filename" in self.extraction_config[topic_key]["transform"].keys():
-            filename = self.extraction_config[topic_key]["transform"]["filename"] + ".csv"
+            chain_limit = None # default
+            if "chain_limit" in csv_transform.keys():
+                chain_limit = csv_transform["chain_limit"]
+                if isinstance(chain_limit, str):
+                    if chain_limit.lower() == "none":
+                        chain_limit = None
+                    else:
+                        raise ValueError("The value for the chain limit parameter must be NULL, None or a float. It cannot be a string.")
 
-        # default output directory is same as where the topic data is saved
-        if "output_destination" in self.extraction_config[topic_key]["transform"].keys():
-            output_dir = self.root_output_dir / self.extraction_config[topic_key]["transform"]["output_destination"]
-            output_dir.mkdir(parents=True, exist_ok=True)
+            # get transform for each
+            filelist_with_data = [None]*len(filelist) # pre-allocate memory
+            for idx, frame in enumerate(tqdm(filelist)):
+                timestamp, chain_differential, transform, status = self.bag_transformer.lookup_transform(parent_frame, child_frame, frame[1],
+                    method=method, lookup_limit=lookup_limit, chain_limit=chain_limit)
+                filelist_with_data[idx] = [frame[0], frame[1], transform, status, timestamp, chain_differential]
 
-        # open csv file
-        with open(output_dir / filename, 'w', newline='') as csvfile:
+            # set output destination and filename
+            filename = topic_key + "_%d.csv"%(idx) # default
+            if "filename" in csv_transform.keys():
+                filename = csv_transform["filename"] + ".csv"
 
-            # create csvwriter object and write header
-            csvwriter = csv.writer(csvfile, delimiter=',')
-            csvwriter.writerow(["filename", "parent_frame", "child_frame", "frame_timestamp", "pos_x", "pos_y", "pos_z", "quat_w", "quat_x", "quat_y", "quat_z", "transform_timestamp", "chain_differential", "status"])
+            # default output directory is same as where the topic data is saved
+            if "output_destination" in csv_transform.keys():
+                output_dir = self.root_output_dir / csv_transform["output_destination"]
+                output_dir.mkdir(parents=True, exist_ok=True)
 
-            # Write transform list
-            for idx, data in enumerate(filelist_with_data):
-                if type(data[2]) == sm.pose3d.SE3: # make sure transform isn't none
-                    position = data[2].A[:3, -1]
-                    quat = sm.base.r2q(data[2].A[:3,:3])
-                    transform_timestamp = data[4]
-                    chain_differential = data[5]
-                else:
-                    position = ["None"]*3
-                    quat = ["None"]*4
-                    transform_timestamp = "None"
-                    chain_differential = "None"
+            # open csv file
+            with open(output_dir / filename, 'w', newline='') as csvfile:
 
-                csvwriter.writerow([data[0], parent_frame, child_frame, data[1], 
-                position[0], position[1], position[2], 
-                quat[0], quat[1], quat[2], quat[3], 
-                transform_timestamp, chain_differential, data[3].name])
+                # create csvwriter object and write header
+                csvwriter = csv.writer(csvfile, delimiter=',')
+                csvwriter.writerow(["filename", "parent_frame", "child_frame", "frame_timestamp", "pos_x", "pos_y", "pos_z", "quat_w", "quat_x", "quat_y", "quat_z", "transform_timestamp", "chain_differential", "status"])
+
+                # Write transform list
+                for idx, data in enumerate(filelist_with_data):
+                    if type(data[2]) == sm.pose3d.SE3: # make sure transform isn't none
+                        position = data[2].A[:3, -1]
+                        quat = sm.base.r2q(data[2].A[:3,:3])
+                        transform_timestamp = data[4]
+                        chain_differential = data[5]
+                    else:
+                        position = ["None"]*3
+                        quat = ["None"]*4
+                        transform_timestamp = "None"
+                        chain_differential = "None"
+
+                    csvwriter.writerow([data[0], parent_frame, child_frame, data[1], 
+                    position[0], position[1], position[2], 
+                    quat[0], quat[1], quat[2], quat[3], 
+                    transform_timestamp, chain_differential, data[3].name])
     
     
 
