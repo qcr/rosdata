@@ -112,7 +112,7 @@ camera_info_<id>:
 The arguments for `topic_<id>` are:
 ```yaml
 topic_<id>:
-    topic_name: <camera_info_topic> # required - used to specify the name of the camera info topic 
+    topic_name: <ros_topic_name> # required - used to specify the name of the topic 
     message_type: <ros_message_type> # required - determines the data extraction method
     output_destination: <relative_destination> # optional - used to specify a directory relative to the root output directory to save the topic data. Defaults to the root_output_directory/topic_<id>.
     filename_template: <filename_template> # optional - used as a filename template string (e.g. `image_%06d-<ros_timestamp>`), the appropriate file_extenstion will be automatically appended. Only a single topic index and ROS timestamp can be included in the template. Use the Python `%d` string formatter, or derivate of, to specify the topic index and use `<ros_timestamp>` to include the ROS topic timestamp as a string which will be in the format `<seconds>_<nanaseconds>`. Defaults to `frame_%06d`
