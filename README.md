@@ -85,9 +85,9 @@ After successful execution you will find a `<rosdata_repo>/example/data` folder 
 The extraction config file is a YAML file. This file is used to specify what data should be extracted from a ROSBag and where it should be extracted. Currently only three types of high level keys are supported by the tool. These keys are `transorm_<id>, camera_info_<id>, and topic_<id>`, where `<id>` is simply a unique number defined by you. Each key is used to extract data in a specific format from a specific set of ROS message types. The set of message types associated with each key are:
 
 | **Key**            | **ROS Message Type**                                                    |
-| ------------------ | ----------------------------------------------------------------------- | ---------------------- |
+| ------------------ | ----------------------------------------------------------------------- |
 | `transform_<id>`   | tf2_msgs/TFMessage                                                      |
-| `camera_info_<id>` |                                                                         | sensor_msgs/CameraInfo |
+| `camera_info_<id>` | sensor_msgs/CameraInfo                                                  |
 | `topic_<id>`       | sensor_msgs/CompressedImage, sensor_msgs/Image, sensor_msgs/PointCloud2 |
 
 You can extract as many of each message type from your ROSBag by simply utilising unique IDs. For example, if you wish to extract a CSV file for the transform map to odom, as well as map to base_link you could simply have two transform keys (e.g., `transform_0` and `transform_1`), one for each.
