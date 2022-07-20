@@ -6,12 +6,12 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='rosdata',
-      version='0.1.0',
+      version='0.1.1',
       author='James Mount',
       author_email='j.mount@qut.edu.au',
-      url='https://github.com/best-of-acrv/refinenet',
+      url='https://github.com/qcr/rosdata',
       description='A tool for extracting and manipulating data within ROSBags',
-      license_files=['LICENSE.txt'],
+      license_files=['LICENSE'],
       long_description=long_description,
       long_description_content_type='text/markdown',
       packages=find_packages(),

@@ -4,7 +4,6 @@
 # import sys
 import csv
 import yaml
-import rosbag
 import pathlib
 import numpy as np
 from tqdm import tqdm
@@ -15,10 +14,17 @@ import cv2
 import imutils
 import spatialmath as sm
 
-from .rosbag_extractor import ROSBagExtractor
-from .rosbag_transformer import ROSBagTransformer
-from .rosbag_transformer import Status as RBTStatus
-
+# Extraction and Show Info utilities require ros python packages, however
+# these are not required for visualisation or for importing CSVROSData
+ros_utilities_enabled = True
+try:
+    import rosbag
+    from .rosbag_extractor import ROSBagExtractor
+    from .rosbag_transformer import ROSBagTransformer
+    from .rosbag_transformer import Status as RBTStatus
+except ImportError as e:
+    print("Unable to import rosbag, ROSBagExtractor, or ROSBagTransform. The extraction and info utilities will not be accessible.")
+    rosbag_imported = False
 
 
 ### FUNCTIONS ###
@@ -30,6 +36,9 @@ def extract_rosbag_data(bag_path : pathlib.Path, extraction_config_path : pathli
         extraction_config_path (pathlib.Path): the path to the extraction config file
         root_output_dir (pathlib.Path): the root output directory for the extracted data
     """
+
+    if not ros_utilities_enabled:
+        raise ImportError("Was unable to import rosbag, ROSBagExtractor, or ROSBagTransform.")
     
     # Check to see if root output directory exists - ask if wish to remove it
     if root_output_dir.exists():
@@ -61,6 +70,9 @@ def extract_rosbag_data(bag_path : pathlib.Path, extraction_config_path : pathli
 
 
 def show_info(bag_path : pathlib.Path, tree_root : str, **kwargs):
+
+    if not ros_utilities_enabled:
+        raise ImportError("Was unable to import rosbag, ROSBagExtractor, or ROSBagTransform.")
 
     # Check to see if showing all information
     show_all = all(x == False for x in kwargs.values())
