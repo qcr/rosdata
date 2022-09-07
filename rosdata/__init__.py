@@ -1,5 +1,5 @@
 
-from .rosdata import CSVROSData
+from .rosdata import CSVROSData, yes_or_no, rmdir
 
 try:
     from .rosbag_extractor import ROSBagExtractor
