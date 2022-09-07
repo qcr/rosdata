@@ -14,6 +14,8 @@ import cv2
 import imutils
 import spatialmath as sm
 
+import warnings
+
 # Extraction and Show Info utilities require ros python packages, however
 # these are not required for visualisation or for importing CSVROSData
 ros_utilities_enabled = True
@@ -23,7 +25,7 @@ try:
     from .rosbag_transformer import ROSBagTransformer
     from .rosbag_transformer import Status as RBTStatus
 except ImportError as e:
-    print("Unable to import rosbag, ROSBagExtractor, or ROSBagTransform. The extraction and info utilities will not be accessible.")
+    warnings.warn("Unable to import rosbag, ROSBagExtractor, or ROSBagTransform. The extraction and info utilities will not be accessible.")
     rosbag_imported = False
 
 
