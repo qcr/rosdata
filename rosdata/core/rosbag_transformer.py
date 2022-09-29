@@ -1,24 +1,26 @@
 #!/usr/bin/env python3
 
-### IMPORT MODULES ###
-# import sys
-# import csv
-# import yaml
-# import pathlib
+###############
+### MODULES ###
+###############
+
+import dill
 import numpy as np
 from enum import Enum
 from tqdm import tqdm
 from typing import Union
 
-import dill
 import treelib
 import spatialmath as sm
 
 import rospy
-from geometry_msgs.msg import Transform
+from geometry_msgs.msg import Transform as ROSTransformMsg
 
-### HELPER CLASSES ###
-class Status(Enum):
+###############
+### CLASSES ###
+###############
+
+class TransformStatus(Enum):
     SUCCESS = 0
     UNKNOWN_METHOD = 1
     NO_MATCHING_TRANSFORM = 2
@@ -26,9 +28,18 @@ class Status(Enum):
     CHAIN_LIMIT_ERROR = 4
     SPATIALMATH_INTERP_ERROR = 5
 
-class TransformData:
 
-    def __init__(self, timestamp : rospy.rostime.Time, transform : Transform):
+class TransformData:
+    """Class to hold transform data in a more useful format. Stores the ROS timestamp as a standard float in seconds. The ROS transform message is stored as a Spatial Maths SE3 object.
+    """
+
+    def __init__(self, timestamp: rospy.rostime.Time, transform: ROSTransformMsg):
+        """Instantiates a TransformData object
+
+        Args:
+            timestamp (rospy.rostime.Time): the ROS time stamp for the associate transform
+            transform (ROSTransformMsg): the ROS transform message
+        """
         
         self.timestamp = timestamp.to_sec()
 
@@ -38,15 +49,34 @@ class TransformData:
 
 
 class Transforms(object):
+    """A class to hold a list of transforms over time for a given parent and child frame.
 
-    def __init__(self, parent_frame : str, child_frame : str, static_transform : bool = False):
+    Args:
+        object (_type_): _description_
+    """
+
+    def __init__(self, parent_frame: str, child_frame: str, static_transform: bool = False):
+        """Instantiates a Transforms object.
+
+        Args:
+            parent_frame (str): the name of the parent frame for the transform
+            child_frame (str): the name of the child frame for the transform
+            static_transform (bool, optional): set to true if this is a static transform that does not change with time. Defaults to False.
+        """
 
         self.parent_frame = parent_frame
         self.child_frame = child_frame
         self.transforms = []
         self.static_transform = static_transform
 
-    def add_transform(self, timestamp : rospy.rostime.Time, pose : Transform, static_transform : bool = None):
+    def add_transform(self, timestamp: rospy.rostime.Time, pose: ROSTransformMsg, static_transform: bool = None):
+        """Adds a transform to the list.
+
+        Args:
+            timestamp (rospy.rostime.Time): the ROS timestamp for the transform
+            pose (ROSTransformMsg): the pose as a ROS transform message
+            static_transform (bool, optional): if the the transform is static. Defaults to None.
+        """
 
         if static_transform != None:
             # update static transform attribute if required
@@ -57,7 +87,7 @@ class Transforms(object):
         else:
             self.transforms.append(TransformData(timestamp, pose))
 
-### ROSBAG TRANSFORMER CLASS ###
+
 class ROSBagTransformer:
     """
     A Class that processes the transform data from a ROS Bag file
@@ -97,7 +127,7 @@ class ROSBagTransformer:
         
 
         
-    def _build_transform_tree(self, bag, transform_topic : str, static_transform_topic : str, tree_root : str = None):
+    def _build_transform_tree(self, bag, transform_topic: str, static_transform_topic: str, tree_root: str = None):
         """A private function used to help process the transform data in the supplied ROSBag.
          This function must be called prior to any other class methods.
 
@@ -181,7 +211,7 @@ class ROSBagTransformer:
         # Change tag of all child frames to static if required
 
 
-    def _add_child_frames(self, parent : str):
+    def _add_child_frames(self, parent: str):
         """A private function to be used recursively with the self._frames_dict
             to add nodes to the transforms tree class variable.
 
@@ -204,7 +234,7 @@ class ROSBagTransformer:
                 self._add_child_frames(child_frame)
         
 
-    def _check_frames_exist(self, frames : list):
+    def _check_frames_exist(self, frames: list):
         """checks to see if all frames in the passed list exist within the transform tree.
 
         Args:
@@ -218,13 +248,23 @@ class ROSBagTransformer:
                 raise ValueError('The transform frame \'%s\' does not exist in the transform tree.'%(frame))
 
     
-    def save(self, filename):
+    def save(self, filename: str):
+        """Saves the ROSBagTransformer object to a file.
+
+        Args:
+            filename (str): the absolute path to the file
+        """
         with open(filename, 'wb') as f:
             dill.dump(self.__dict__, f)
             f.close()
 
     
-    def load(self, filename):
+    def load(self, filename: str):
+        """Loads a previously saved ROSBagTransformer object.
+
+        Args:
+            filename (str): the absolute path to the file
+        """
         with open(filename, 'rb') as f:
             tmp_dict = dill.load(f)
             f.close()
@@ -232,7 +272,7 @@ class ROSBagTransformer:
         self.__dict__.update(tmp_dict)
 
 
-    def build_transform_tree(self, bag, transform_topic : str = "/tf", static_transform_topic : str ="/tf_static" , tree_root : str = None):
+    def build_transform_tree(self, bag, transform_topic: str = "/tf", static_transform_topic: str ="/tf_static" , tree_root: str = None):
         """Processes the data in the supplied ROSBag, passed during object construction, and builds the
         transform tree. This function must be called prior to any other class methods. Depending on the 
         bag size, this can take a while.
@@ -259,10 +299,12 @@ class ROSBagTransformer:
 
 
     def show_tree(self):
+        """Prints the tree to the terminal.
+        """
         self._transforms_tree.show()
 
     
-    def frame_exists(self, frame : str) -> bool:
+    def frame_exists(self, frame: str) -> bool:
         """Checks to see if a frame exists within the transform tree.
 
         Args:
@@ -274,7 +316,7 @@ class ROSBagTransformer:
         return self._transforms_tree.contains(frame)
 
     
-    def get_common_frame(self, frame_1 : str, frame_2 : str) -> str:
+    def get_common_frame(self, frame_1: str, frame_2: str) -> str:
         """gets the lowest common ancester frame between two frames.
 
         Args:
@@ -308,7 +350,7 @@ class ROSBagTransformer:
         return lower_frame
 
     
-    def static_transform(self, source : str, dest : str) -> bool:
+    def static_transform(self, source: str, dest: str) -> bool:
         """determines if the transform chain from a source to a destination frame is static.
 
         Args:
@@ -345,7 +387,7 @@ class ROSBagTransformer:
         return self._transforms_tree.to_dict()
 
     
-    def get_chain(self, source : str, dest : str, return_type : type = tuple) -> Union[tuple, list]:
+    def get_chain(self, source: str, dest: str, return_type: type = tuple) -> Union[tuple, list]:
         """gets the transform chain from a source to a destination frame. The source frame does not need to
         be directly connected to the dest.
 
@@ -393,7 +435,7 @@ class ROSBagTransformer:
             return tuple([retval_list[idx:idx+2] for idx in range(len(retval_list)-1)])
 
     
-    def lookup_transforms(self, source : str, dest : str) -> tuple:
+    def lookup_transforms(self, source: str, dest: str) -> tuple:
         """looks up and returns the transforms between a source and destination frame. 
             If the transform is a chain (i.e., the source and destination are not directly 
             connected) the transform will be updated whenever one of the transforms 
@@ -497,8 +539,8 @@ class ROSBagTransformer:
         return sorted(transforms_list, key=lambda x : x[0]), static_transform_chain
 
     
-    def lookup_transform(self, source : str, dest : str, time : float, method : str="nearest", lookup_limit : float=None, chain_limit : float=None) -> tuple:
-        """Looks up and returns transform between a source and destination frame for a given time. If the entire transform chain
+    def lookup_transform(self, source: str, dest: str, time: float, method: str="nearest", lookup_limit: float=None, chain_limit: float=None) -> tuple:
+        """Looks up and returns the transform between a source and destination frame for a given time. If the entire transform chain
             is static then the method and limit arguments are ignored.
 
         Args:
@@ -513,16 +555,16 @@ class ROSBagTransformer:
                 interpolate - will return an interpolated transform only if there is a transform either side
                     of the desired time within the lookup_limit.
             lookup_limit (float, optional): the limit to use when looking up a transform. If a transform 
-            between the source and destination frame cannot be found within this limit a Status.LOOKUP_LIMIT_ERROR 
+            between the source and destination frame cannot be found within this limit a TransformStatus.LOOKUP_LIMIT_ERROR 
             will be returned. Defaults to None.
             chain_limit (float, optional): if the selected transform has a chain differential greater than 
-            this value a Status.CHAIN_LIMIT_ERROR will be returned. Defaults to None.
+            this value a TransformStatus.CHAIN_LIMIT_ERROR will be returned. Defaults to None.
 
         Raises:
             ValueError: if the source or destination frame does not exist within the tree.
 
         Returns:
-            tuple: returns a tuple containing the [timestamp, chain_differential, transform, status].
+            tuple: returns a tuple containing the [timestamp, chain_differential, transform, transform_status].
                 the timestamp will be that of the selected transform for the exact, recent and nearest methods,
                 and be equal to the desired time for the interpolate method. The chain_differential will be
                 that of the selected transform for the exact, recent and nearest methods, and be the maximum
@@ -543,7 +585,7 @@ class ROSBagTransformer:
         # if entire transform chain is static, transform never changes
         if self._static_transform_chain:
             # return desired time, chain differential of 0.0, transform and success
-            return time, 0.0, self._transforms_list[0][2], Status.SUCCESS        
+            return time, 0.0, self._transforms_list[0][2], TransformStatus.SUCCESS        
 
         # get time difference between the list and desired time
         time_diff = self._transforms_list[:,0] - time
@@ -552,7 +594,7 @@ class ROSBagTransformer:
         if method.lower() == "exact":
             if np.all(time_diff != 0):
                 # no transform with exact timestamp
-                return None, None, None, Status.NO_MATCHING_TRANSFORM  
+                return None, None, None, TransformStatus.NO_MATCHING_TRANSFORM  
             
             # get the timestamp, chain differential and transform
             selected_idx = np.argmin(np.abs(time_diff))
@@ -563,7 +605,7 @@ class ROSBagTransformer:
         elif method.lower() == "recent":
             if np.all(time_diff > 0):
                 # no transform in past
-                return None, None, None, Status.NO_MATCHING_TRANSFORM 
+                return None, None, None, TransformStatus.NO_MATCHING_TRANSFORM 
             
             # get the timestamp, chain differential and transform
             selected_idx = np.argmax(time_diff[time_diff <= 0])
@@ -581,7 +623,7 @@ class ROSBagTransformer:
         elif method.lower() == "interpolate":
             if np.all(time_diff < 0) or np.all(time_diff > 0):
                 # no transform on either side of desired time
-                return None, None, None, Status.NO_MATCHING_TRANSFORM
+                return None, None, None, TransformStatus.NO_MATCHING_TRANSFORM
             
             # get the index on each side of 0 time difference
             negative_idx = np.argmax(time_diff[time_diff <= 0])
@@ -589,7 +631,7 @@ class ROSBagTransformer:
 
             # make sure both values are within the lookup limit
             if lookup_limit != None and np.any(time_diff[negative_idx:positive_idx+1] > lookup_limit):
-                return None, None, None, Status.LOOKUP_LIMIT_ERROR
+                return None, None, None, TransformStatus.LOOKUP_LIMIT_ERROR
 
             # get where the desired timestamp is between the two transform points in the range 0 to 1
             # use numpy interp function for this
@@ -598,7 +640,7 @@ class ROSBagTransformer:
             # interpolate the position
             transform = self._transforms_list[negative_idx][2].interp(self._transforms_list[positive_idx][2], point)
             if type(transform.A) != np.ndarray: # interpolation error
-                return None, None, None, Status.SPATIALMATH_INTERP_ERROR
+                return None, None, None, TransformStatus.SPATIALMATH_INTERP_ERROR
 
             # set timestamp, to be the desired time
             timestamp = time
@@ -607,13 +649,23 @@ class ROSBagTransformer:
             chain_dif = max(self._transforms_list[negative_idx][1], self._transforms_list[positive_idx][1])
         
         else:
-            return None, None, None, Status.UNKNOWN_METHOD
+            return None, None, None, TransformStatus.UNKNOWN_METHOD
 
         # check lookup and chain differential limits
         if lookup_limit != None and np.abs(timestamp - time) > lookup_limit:
-            return None, None, None, Status.LOOKUP_LIMIT_ERROR
+            return None, None, None, TransformStatus.LOOKUP_LIMIT_ERROR
         elif chain_limit != None and chain_dif > chain_limit:
-            return None, None, None, Status.CHAIN_LIMIT_ERROR
+            return None, None, None, TransformStatus.CHAIN_LIMIT_ERROR
 
         # return
-        return timestamp, chain_dif, transform, Status.SUCCESS
+        return timestamp, chain_dif, transform, TransformStatus.SUCCESS
+
+
+########################
+### PUBLIC FUNCTIONS ###
+########################
+
+
+#########################
+### PRIVATE FUNCTIONS ###
+#########################
