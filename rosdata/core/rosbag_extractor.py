@@ -1,41 +1,29 @@
 #!/usr/bin/env python3
 
-### IMPORT MODULES ###
-# import os
-# import sys
+###############
+### MODULES ###
+###############
+
 import csv
-from numpy.lib.function_base import extract
 import yaml
 import dill
 import pathlib
-import subprocess
 import numpy as np
-# from enum import Enum
 from tqdm import tqdm
-# from typing import Union
-
-# import treelib
-import spatialmath as sm
-import open3d as o3d
-# from open3d_ros_helper import open3d_ros_helper as orh
 
 import cv2
+import open3d as o3d
+import spatialmath as sm
 from cv_bridge import CvBridge, CvBridgeError
 
 from .rosbag_transformer import ROSBagTransformer
 
 
-# from enum import IntEnum
-# class StateKeys(IntEnum):
-#     CleanState = 0
-#     TransformTreeBuilt = 1
+###############
+### CLASSES ###
+###############
 
-# class ExtractionKey(IntEnum):
-#     NoExtraction = 0
-#     Data = 1
-#     DataAndTransforms = 2
 
-### ROSBAG EXTRACTOR CLASS ###
 class ROSBagExtractor:
     """
     A Class that extracts data from a ROS Bag file given an extraction config
@@ -550,11 +538,15 @@ class ROSBagExtractor:
                     quat[0], quat[1], quat[2], quat[3], 
                     transform_timestamp, chain_differential, data[3].name])
     
-    
 
-### HELPER FUNCTIONS ###
-def dict_without_keys(d, keys):
-    return {x: d[x] for x in d if x not in keys}
+########################
+### PUBLIC FUNCTIONS ###
+########################
+
+
+#########################
+### PRIVATE FUNCTIONS ###
+#########################
 
 # the function rospc_to_o3dpc in the open3d_ros_helper 
 # module throws an error for some reason. Here is a direct 

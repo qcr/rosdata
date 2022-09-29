@@ -1,10 +1,9 @@
+import warnings
 
-from .rosdata import CSVROSData, yes_or_no, rmdir
 
 try:
-    from .rosbag_extractor import ROSBagExtractor
-    from .rosbag_transformer import ROSBagTransformer
+    from rosdata.core import ROSBagExtractor, ROSBagTransformer, TransformStatus
 except ImportError as e:
-    pass
-    # print(e)
-    # print("ROSBagExtractor and ROSBagTransform will not be accessible.")
+    warnings.warn("Unable to import ROSBagExtractor, ROSBagTransform, and TransformStatus from the ROSData Python Package. This was due to Import Error %s. The CSVROSData file reader class is still available.")
+
+from rosdata.utils.datareader import CSVROSData 

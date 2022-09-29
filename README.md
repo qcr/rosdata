@@ -6,7 +6,7 @@
 ![Primary language](https://img.shields.io/github/languages/top/qcr/rosdata)
 [![License](https://img.shields.io/github/license/qcr/rosdata)](./LICENSE.txt)
 
-The ROS Data Python Package is a simple tool to extract, manipulate and visualise ROSBag Data. The tools for manipulating ROSBag data are coming soon.
+The ROS Data Python Package provides tools to extract, manipulate and visualise ROSBag Data. The tools for manipulating ROSBag data are coming soon.
 
 The tool can currently extract the following types of messages:
 
@@ -48,7 +48,9 @@ pip install -e .
 ROS Data currently has the following tools:
 
 - **extract** - extracts data from a ROSBag given a user defined extraction config file.
+- **info** - provides info about a ROSBag including data not shown by the standard `rosbag info` tool.
 - **visualise** - visualise poses contained within CSV file created via the extraction tool.
+- **manipulate** - manipulation tools to operate on extracted data.
 
 These tools can be called by running the following command, after installation:
 
