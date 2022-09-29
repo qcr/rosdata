@@ -10,13 +10,8 @@ setup(name='rosdata',
       author='James Mount',
       author_email='j.mount@qut.edu.au',
       url='https://github.com/qcr/rosdata',
-<<<<<<< HEAD
-      description='A tool for extracting and manipulating data within ROSBags',
-      license_files=['LICENSE'],
-=======
       description='Provides tools to extract, manipulate and visualise ROSBag Data.',
       license_files=['LICENSE.txt'],
->>>>>>> develop
       long_description=long_description,
       long_description_content_type='text/markdown',
       packages=find_packages(),
