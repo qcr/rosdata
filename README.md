@@ -20,7 +20,7 @@ The tool can currently extract the following types of messages:
 
 Details on how to extract this data can be found [below](#extraction-config-file).
 
-**Important Note**: if your `sensor_msgs/PointCloud2` topic is from a stereo camera you will need to apply a filter. More information can be found [here](DepthImagesInfo). If you are using Python Open3D our [Open3D Utils Package](#) (link to come) have another utility package with some great tools to help make filtering really easy.  
+**Important Note**: if your `sensor_msgs/PointCloud2` topic is from a stereo camera you will need to apply a filter. More information can be found [here](DepthImagesInfo.md). If you are using Python Open3D, this [Open3D Utils Package](#) (link to come) has some great tools to help make filtering really easy.  
 
 ## Installation
 
