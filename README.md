@@ -20,6 +20,8 @@ The tool can currently extract the following types of messages:
 
 Details on how to extract this data can be found [below](#extraction-config-file).
 
+**Important Note**: if your `sensor_msgs/PointCloud2` topic is from a stereo camera you will need to apply a filter. More information can be found [here](DepthImagesInfo). If you are using Python Open3D our [Open3D Utils Package](#) (link to come) have another utility package with some great tools to help make filtering really easy.  
+
 ## Installation
 
 Conda is used to setup the appropriate environment/dependencies. We recommend the following procedure for the rosdata tool:
@@ -33,15 +35,6 @@ pip install -e .
 ```
 
 The rosdata tool can then be called from any directory using the command `rosdata <tool> <tool_arguments>`.
-
-<!--
-Currently, you will need to install dependencies manually. Main dependencies are numpy, treelib, rospy, rosbag, spatialmaths, open3d, and open3d_ros_helper.
-
-```
-conda env create --file envname.yml # Environment file not yet provided
-conda activate rosdata_env # Not yet supported
-pip install -e .
-``` -->
 
 ## Usage
 
