@@ -85,7 +85,7 @@ The extraction config file is a YAML file. This file is used to specify what dat
 | `camera_info_<id>` | sensor_msgs/CameraInfo                                                  |
 | `topic_<id>`       | sensor_msgs/CompressedImage, sensor_msgs/Image, sensor_msgs/PointCloud2 |
 
-You can extract as many of each message type from your ROSBag by simply utilising unique IDs. For example, if you wish to extract a CSV file for the transform map to odom, as well as map to base_link you could simply have two transform keys (e.g., `transform_0` and `transform_1`), one for each.
+You can extract as many of each message type from your ROSBag by simply utilising unique IDs. For example, if you wish to extract a CSV file for the transform map to odom, as well as map to base_link you could simply have two transform keys (e.g., `transform_0` and `transform_1`), one for each. If you have multiple transform tree roots you can specify the tree root in the config file using the key `tree_root`.
 
 The arguments for `transform_<id>` are:
 
@@ -134,6 +134,8 @@ topic_<id>:
 A complete example:
 
 ```yaml
+treet_root: map
+
 transform_0:
   parent_frame: map
   child_frame: base_link
