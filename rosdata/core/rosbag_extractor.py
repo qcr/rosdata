@@ -568,9 +568,6 @@ def rospc_to_o3dpc(rospc, remove_nans=True):
     
     # Convert to array and remove NaNs
     cloud_array = ros_numpy.point_cloud2.pointcloud2_to_array(rospc).ravel()
-    if remove_nans: 
-        mask = np.isfinite(cloud_array['x']) & np.isfinite(cloud_array['y']) & np.isfinite(cloud_array['z'])
-        cloud_array = cloud_array[mask]
 
     # Create point cloud
     cloud_pts = ros_numpy.point_cloud2.get_xyz_points(cloud_array, remove_nans)
