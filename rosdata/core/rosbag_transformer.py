@@ -30,7 +30,7 @@ class TransformStatus(Enum):
 
 
 class TransformData:
-    """Class to hold transform data in a more useful format. Stores the ROS timestamp as a standard float in seconds. The ROS transform message is stored as a Spatial Maths SE3 object.
+    """Hold transform data in a more useful format. Stores the ROS timestamp as a standard float in seconds. The ROS transform message is stored as a Spatial Maths SE3 object.
     """
 
     def __init__(self, timestamp: rospy.rostime.Time, transform: ROSTransformMsg):
@@ -49,10 +49,7 @@ class TransformData:
 
 
 class Transforms(object):
-    """A class to hold a list of transforms over time for a given parent and child frame.
-
-    Args:
-        object (_type_): _description_
+    """Stores a list of transforms over time for a given parent and child frame.
     """
 
     def __init__(self, parent_frame: str, child_frame: str, static_transform: bool = False):
@@ -437,9 +434,9 @@ class ROSBagTransformer:
     
     def lookup_transforms(self, source: str, dest: str) -> tuple:
         """looks up and returns the transforms between a source and destination frame. 
-            If the transform is a chain (i.e., the source and destination are not directly 
-            connected) the transform will be updated whenever one of the transforms 
-            in the chain is updated.
+        If the transform is a chain (i.e., the source and destination are not directly 
+        connected) the transform will be updated whenever one of the transforms 
+        in the chain is updated.
 
         Args:
             source (str): the name of the source frame
@@ -541,7 +538,7 @@ class ROSBagTransformer:
     
     def lookup_transform(self, source: str, dest: str, time: float, method: str="nearest", lookup_limit: float=None, chain_limit: float=None) -> tuple:
         """Looks up and returns the transform between a source and destination frame for a given time. If the entire transform chain
-            is static then the method and limit arguments are ignored.
+        is static then the method and limit arguments are ignored.
 
         Args:
             source (str): the name of the source frame
@@ -549,16 +546,16 @@ class ROSBagTransformer:
             time (float): the time at which to look up the transform
             method (str, optional): the method to use when looking up the transform. 
                 Options include "exact", "recent", "nearest", and "interpolate". Defaults to "nearest".
-                exact - will attempt to get an exact transform based on the desired time.
-                recent - will return a transform only if there is a past transform within the lookup_limit.
-                nearest - will return a future or past transform if there is one within the lookup_limit.
-                interpolate - will return an interpolated transform only if there is a transform either side
-                    of the desired time within the lookup_limit.
+                Exact - will attempt to get an exact transform based on the desired time.
+                Recent - will return a transform only if there is a past transform within the lookup_limit.
+                Nearest - will return a future or past transform if there is one within the lookup_limit.
+                Interpolate - will return an interpolated transform only if there is a transform either side
+                of the desired time within the lookup_limit.
             lookup_limit (float, optional): the limit to use when looking up a transform. If a transform 
-            between the source and destination frame cannot be found within this limit a TransformStatus.LOOKUP_LIMIT_ERROR 
-            will be returned. Defaults to None.
+                between the source and destination frame cannot be found within this limit a TransformStatus.LOOKUP_LIMIT_ERROR 
+                will be returned. Defaults to None.
             chain_limit (float, optional): if the selected transform has a chain differential greater than 
-            this value a TransformStatus.CHAIN_LIMIT_ERROR will be returned. Defaults to None.
+                this value a TransformStatus.CHAIN_LIMIT_ERROR will be returned. Defaults to None.
 
         Raises:
             ValueError: if the source or destination frame does not exist within the tree.

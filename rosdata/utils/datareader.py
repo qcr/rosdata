@@ -16,9 +16,11 @@ import spatialmath as sm
 
 
 class CSVROSDataRow():
+    """A helper class to store a single row of data contained within a CSV file created by ROSData tools.
+    """
 
     def __init__(self, data: list, fields: list) -> None:
-        """Instantiates a CSVROSDataRow row object. Will hold the specific values for the attributes (headers) within the CSV file. For the pose data functions to be accesible the CSV file must contain the headers ['pos_x', 'pos_y', 'pos_z', 'quat_w', 'quat_x', 'quat_y', 'quat_z']. Numeric data will be stored as floats, all other data will be stored as strings except if for the string 'none' which will be stored as None.
+        """Initialises a CSVROSDataRow object where the class attributes will those contained within the fields argument. For the pose data functions to be accesible the fields argument must contain the strings ['pos_x', 'pos_y', 'pos_z', 'quat_w', 'quat_x', 'quat_y', 'quat_z']. Numeric data will be stored as floats, all other data will be stored as strings except for the string 'none' which will be stored as None.
 
         Args:
             data (list): the values for the provided fields
@@ -87,11 +89,11 @@ class CSVROSDataRow():
 
 
 class CSVROSData():
-    """A class to make the data contained within a ROSData CSV file more accessible
+    """A utility class to provide easy accessibility to a CSV file created by ROSData tools.
     """
 
     def __init__(self, csvfile: str) -> None:
-        """Initialises a CSVROSData object where the attribute names will be the headers of the CSV file. For the pose data functions to be accesible the CSV file must contain the headers ['pos_x', 'pos_y', 'pos_z', 'quat_w', 'quat_x', 'quat_y', 'quat_z']. Numeric data will be stored as floats, all other data will be stored as strings except if for the string 'none' which will be stored as None.
+        """Initialises a CSVROSData object where the class attributes, referred to as fields, will be the headers of the CSV file. For the pose data functions to be accesible the CSV file must contain the headers ['pos_x', 'pos_y', 'pos_z', 'quat_w', 'quat_x', 'quat_y', 'quat_z']. Numeric data will be stored as floats, all other data will be stored as strings except for the string 'none' which will be stored as None.
 
         Args:
             csvfile (str): the path to the ROSData CSV file
@@ -123,15 +125,14 @@ class CSVROSData():
         return False
 
 
-    def get_pose(self, index : int) -> sm.SE3():
+    def get_pose(self, index : int) -> sm.SE3:
         """Gets the transform (spatialmath.SE3 object) for the given index.
 
         Args:
             index (int): the index for the desired transform
 
         Returns:
-            spatialmath.SE3: returns a spatialmath.SE3 object with the given transform,
-                             or None if a transform does not exist for this index.
+            spatialmath.SE3: returns a spatialmath.SE3 object with the given transform, or None if a transform does not exist for this index.
         """
 
         return self._data[index].get_pose()    
@@ -144,8 +145,7 @@ class CSVROSData():
             index (int): the index for the desired transform
 
         Returns:
-            spatialmath.SE3: returns a spatialmath.SE3 object with the given transform,
-                             or None if a transform does not exist for this index.
+            spatialmath.SE3: returns a spatialmath.SE3 object with the given transform, or None if a transform does not exist for this index.
         """
 
         return self._data[index].get_pose_data()
@@ -168,33 +168,35 @@ class CSVROSData():
     
     def get_data(self, indices=None, fields=None):
         """Gets the entire data for a specific index, or the value for a field for a index, or
-        gets the field for the entire data (e.g., all timestamps).
+        gets the field for the entire data (e.g., all timestamps). 
+
+        Examples:
+            
+            | # return data for index 0
+            | data = csvrosdata_obj.get_data(0)   
+            
+            | # return all pos_x data
+            | data = csvrosdata_obj.get_data('pos_x') 
+            
+            | # return all fields for multiple indices
+            | data = csvrosdata_obj.get_data([0, 2])  
+
+            | # return all data for a set of fields
+            | data = csvrosdata_obj.get_data(['pos_x', 'pos_z'])  
+            
+            | # return multiple fields for a specified index or a set of indices
+            | data = csvrosdata_obj.get_data(0, ['pos_x', 'pos_z']) 
+            | data = csvrosdata_obj.get_data([0, 2], ['pos_x', 'pos_z'])  
 
         Args:
-            item (int, str, list): the index or field you want, or a list of fields
-            args (optional, int or str): item specifies the index, this argument specifies the fields
+            indices (int, str, list): the index or indices to be retrieved
+            fields (optional, int or str): the field or fields to be retrieved
 
         Raises:
             ValueError: if too many arguments are provided
 
         Returns:
-            variable: either the data (list) for a given index, the value for a given index/field or the data (list)
-                for a field across all indices.
-
-        Examples:
-            # return data for index 0
-            data = csvrosdata_obj.get_data(0)
-
-            # return all pos_x data
-            data = csvrosdata_obj.get_data('pos_x')
-
-            # return multiple indices or fields
-            data = csvrosdata_obj.get_data([0, 2])
-            data = csvrosdata_obj.get_data(['pos_x', 'pos_z'])
-
-            # return multiple fields from a specific index or set of indices
-            data = csvrosdata_obj.get_data(0, ['pos_x', 'pos_z'])
-            data = csvrosdata_obj.get_data([0, 2], ['pos_x', 'pos_z'])
+            variable: either the data (list) for a given index, the value for a given index/field or the data (list) for a field across all indices.
             
         """
 
@@ -242,10 +244,18 @@ class CSVROSData():
 
 
     def __getitem__(self, item):
-        """Can be used as a shorthand for the get_data method. Examples:
-            csvrosdata_obj[0] equivalent to csvrosdata_obj.get_data(indices=0)
-            csvrosdata_obj['timestamp'] equivalent to csvrosdata_obj.get_data(fields='timestamp')
-            csvrosdata_obj[0, 'timestamp'] equivalent to csvrosdata_obj.get_data(indices=0, fields='timestamp')
+        """Can be used as a shorthand for the get_data method. 
+        
+        Examples:
+
+            | # equivalent to csvrosdata_obj.get_data(indices=0)
+            | csvrosdata_obj[0] 
+
+            | # equivalent to csvrosdata_obj.get_data(fields='timestamp')
+            | csvrosdata_obj['timestamp'] 
+
+            | # equivalent to csvrosdata_obj.get_data(indices=0, fields='timestamp')
+            | csvrosdata_obj[0, 'timestamp'] 
         """
 
         if isinstance(item, tuple):

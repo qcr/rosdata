@@ -26,7 +26,7 @@ from .rosbag_transformer import ROSBagTransformer
 
 class ROSBagExtractor:
     """
-    A Class that extracts data from a ROS Bag file given an extraction config
+    Extracts data from a ROS Bag file given a YAML extraction config
     """
     def __init__(self, bag, extraction_config : dict, root_output_dir : str):
         """Constructs and pre-processes the data structure for further extraction.
