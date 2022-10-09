@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/qcr/rosdata)](./LICENSE.txt)
 [![Powered by the Spatial Math Toolbox](https://github.com/petercorke/spatialmath-python/raw/master/.github/svg/sm_powered.min.svg)](https://github.com/petercorke/spatialmath-python)
 
-The ROSData Python Package and Tools provides easy ways to extract, manipulate and visualise ROSBag Data. The tools for manipulating ROSBag data are coming soon.
+The ROSData Python Package and Tools provide easy ways to extract, manipulate and visualise ROSBag Data. The tools for manipulating ROSBag data are coming soon.
 
 The tool can currently extract the following types of messages:
 
