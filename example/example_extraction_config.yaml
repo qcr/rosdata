@@ -37,3 +37,9 @@ topic_1:
   message_type: sensor_msgs/Image
   filename_template: image_%06d-<ros_timestamp>
   output_destination: images
+
+topic_2:
+  topic_name: /vectornav/GPS
+  message_type: sensor_msgs/NavSatFix
+  output_destination: data_files
+  filename: gps_data

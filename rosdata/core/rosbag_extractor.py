@@ -287,6 +287,9 @@ class ROSBagExtractor:
             elif self.extraction_config[topic_key]["message_type"].lower() == "sensor_msgs/pointcloud2":
                 filelist, topic_frame_id = self._extract_pointcloud_2_topic(topic_key, output_dir)
 
+            elif self.extraction_config[topic_key]["message_type"].lower() == "sensor_msgs/navsatfix":
+                self._extract_navsatfix_topic(topic_key, output_dir)
+
             else:
                 print("Unknown message type %s. Ignoring topic data extraction"%(topic_name))
 
@@ -300,7 +303,15 @@ class ROSBagExtractor:
             self._save()
               
 
-    def _get_common_topic_extraction_data(self, topic_key : str):
+    def _get_common_topic_extraction_data(self, topic_key : str) -> tuple:
+        """Gets the common data for a topic
+
+        Args:
+            topic_key (str): the topic id key (e.g., 'topic_1')
+
+        Returns:
+            tuple: returns a tuple with the topic name, the filename for the associated data file, and the filename template for associated sensor frames (e.g., for each image)
+        """
         # Get topic name 
         topic_name = self.extraction_config[topic_key]["topic_name"]
 
@@ -443,6 +454,41 @@ class ROSBagExtractor:
         return frame_list, topic_frame_id
 
     
+    def _extract_navsatfix_topic(self, topic_key, output_dir):
+
+        # Get topic name and filename template
+        topic_name, filename, _ = self._get_common_topic_extraction_data(topic_key)
+
+        # Define variables
+        topic_count = self.bag.get_message_count(topic_name)
+
+        # Loop through bag and write out csv file
+        with open(output_dir / (filename + ".csv"), 'w', newline='') as csvfile:
+
+            # create csvwriter object and write header
+            csvwriter = csv.writer(csvfile, delimiter=',')
+            csvwriter.writerow(["timestamp", "frame", "status", "service", 
+                "latitude", "longitude", "altitude", 
+                "cov00", "cov01", "cov02",
+                "cov10", "cov11", "cov12",
+                "cov20", "cov21", "cov22", 
+                "cov_type" ])
+
+            for (_, msg, t) in tqdm(self.bag.read_messages(topics=[topic_name]), total=topic_count):
+
+                # Pull out desired data
+                tmp_data = [t.to_sec(), msg.header.frame_id, msg.status.status, msg.status.service,
+                    msg.latitude, msg.longitude, msg.altitude,
+                    msg.position_covariance[0], msg.position_covariance[1], msg.position_covariance[2],
+                    msg.position_covariance[3], msg.position_covariance[4], msg.position_covariance[5],
+                    msg.position_covariance[6], msg.position_covariance[7], msg.position_covariance[8],
+                    msg.position_covariance_type]
+
+                # Write to file
+                csvwriter.writerow(tmp_data)
+
+
+
     def _write_topic_transform_file(self, topic_key : str, topic_frame_id : str, filelist : list, output_dir : pathlib.Path):
         """Gets and writes the transforms for a file list (e.g., returned from _extract_image_topic) to a CSV file. 
 
