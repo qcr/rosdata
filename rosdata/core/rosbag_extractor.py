@@ -612,13 +612,20 @@ def rospc_to_o3dpc(rospc, remove_nans=True):
     field_names = [field.name for field in rospc.fields]
     is_rgb = 'rgb' in field_names
     
-    # Convert to array and remove NaNs
+    # Convert to array and remove nans
     cloud_array = ros_numpy.point_cloud2.pointcloud2_to_array(rospc).ravel()
+    if remove_nans:
+        mask = np.isfinite(cloud_array['x']) & np.isfinite(cloud_array['y']) & np.isfinite(cloud_array['z'])
+        cloud_array = cloud_array[mask]
 
-    # Create point cloud
-    cloud_pts = ros_numpy.point_cloud2.get_xyz_points(cloud_array, remove_nans)
+    # Get xyz points and create point cloud
+    cloud_pts = np.zeros((cloud_array.shape[0], 3), dtype=np.float32)
+    cloud_pts[:,0] = cloud_array['x']
+    cloud_pts[:,1] = cloud_array['y']
+    cloud_pts[:,2] = cloud_array['z']
     o3dpc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(cloud_pts))
 
+    # Point colours
     if is_rgb:
         rgb_npy = cloud_array['rgb']
         rgb_npy.dtype = np.uint32
@@ -632,4 +639,5 @@ def rospc_to_o3dpc(rospc, remove_nans=True):
             clouds_cols = cloud_cols / 255.0 
         o3dpc.colors = o3d.utility.Vector3dVector(clouds_cols)
 
+    # Return
     return o3dpc
