@@ -5,19 +5,34 @@ The Extraction Tool is the core of ROSData. It truly was the main reason why we 
 
 The extraction tool requires you to write simple extraction config file. This config file is a YAML file defining the data you want extracted and to which folder you wanted it extracted. This means once you have created an extraction config file for a specific robot, platform, or ROS system, you can easily reuse that one config file and share it with your colleagues. We find this works really well with students and researchers who aren't familiar with ROS and need to get a project moving quickly. We can quickly teach them how to turn on the machine and how to record a ROSBag, and then simply provide them with the YAML file for extraction. 
 
+The tool can currently extract the following types of messages:
+
++-----------------------------+-----------------------------------------------------------------+
+| ROS Message Type            | Ouput Format                                                    |
++=============================+=================================================================+
+| tf2_msgs/TFMessage          | CSV File                                                        |
++-----------------------------+-----------------------------------------------------------------+
+| sensor_msgs/CompressedImage | Folder of Images, and if requested, a CSV with transforms       |
++-----------------------------+-----------------------------------------------------------------+
+| sensor_msgs/Image           | Folder of Images, and if requested, a CSV with transforms       |
++-----------------------------+-----------------------------------------------------------------+
+| sensor_msgs/PointCloud2     | Folder of Point Clouds, and if requested, a CSV with transforms |
++-----------------------------+-----------------------------------------------------------------+
+| sensor_msgs/CameraInfo      | YAML File                                                       |
++-----------------------------+-----------------------------------------------------------------+
+| sensor_msgs/NavSatFix       | CSV File                                                        |
++-----------------------------+-----------------------------------------------------------------+
+
+**Important Note**: if your :code:`sensor_msgs/PointCloud2` topic is from a stereo camera you will need to apply a filter. More information can be found :doc:`here <../other/depth_images_info>`. If you are using Python Open3D, this `Link Open3D Utils Package <#>`_ (link to come) has some great tools to help make filtering really easy.  
+
+
 Extraction Config File
 -----------------------
 
-The extraction config file is a YAML file. This file is used to specify what data should be extracted from a ROSBag and where it should be extracted. Currently only three types of high level keys are supported by the tool. These keys are:
-
-    - :code:`transorm_<id>`; 
-    - :code:`camera_info_<id>`; and
-    - :code:`topic_<id>`.
-
-The :code:`<id>` is simply a unique number defined by you. Each key is used to extract data in a specific format for a specific set of ROS message types. The message types associated with each key are:
+The extraction config file is a YAML file. This file is used to specify what data should be extracted from a ROSBag and where it should be extracted. Currently only three types of high level keys are supported by the tool. These keys are: :code:`transorm_<id>`; :code:`camera_info_<id>`; and :code:`topic_<id>`. The :code:`<id>` is simply a unique number defined by you. Each key is used to extract data in a specific format for a specific set of ROS message types. The message types associated with each key are:
 
 +--------------------------+-------------------------------------------------------------------------+
-| **Extraction Config Key**| **Associated ROS Message Types**                                        |
+| Extraction Config Key    | Associated ROS Message Types                                            |
 +==========================+=========================================================================+
 | :code:`transform_<id>`   | tf2_msgs/TFMessage                                                      |
 +--------------------------+-------------------------------------------------------------------------+
@@ -26,6 +41,7 @@ The :code:`<id>` is simply a unique number defined by you. Each key is used to e
 | :code:`topic_<id>`       | - sensor_msgs/CompressedImage                                           |
 |                          | - sensor_msgs/Image                                                     |
 |                          | - sensor_msgs/PointCloud2                                               |
+|                          | - sensor_msgs/NavSatFix                                                 |
 +--------------------------+-------------------------------------------------------------------------+
 
 You can extract as many of each message type from your ROSBag by simply utilising unique IDs. For example, if you wish to extract a CSV file for the transform :code:`map` to :code:`odom`, as well as :code:`map` to :code:`base_link` you could simply have two transform keys (e.g., :code:`transform_0` and :code:`transform_1`), one for each. If your ROS system has a disconnected transform tree resulting in multiple tree roots, can specify the tree root in the config file using the key :code:`tree_root`.
@@ -52,12 +68,14 @@ Camera Info
 
     camera_info_<id>:
         topic_name: <camera_info_topic> # required - used to specify the name ofthe camera info topic
-        filename: <filename> # optional - used to specify a filename, the file extension .yaml will be appended. Defaults to camera_info_<id>.csv
+        filename: <filename> # optional - used to specify a filename, the file extension .yaml will be appended. Defaults to camera_info_<id>.yaml
         output_destination: <relative_destination> # optional - used to specify a directory relative to the root output directory to save the YAML file. Defaults to the root output directory.
 
 
 Topics
 """"""""""""""""""""""""
+
+The configuration for most topics includes the following options.
 
 .. code-block:: yaml
 
@@ -81,6 +99,17 @@ Topics
             chain_limit: <seconds_2> # optional - used to specify a transform chain differential limit when determining the transform. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.
             filename: <filename_2> # optional - used to specify a filename, the file extension .csv will be appended. Defaults to topic_<id>.csv
             output_destination: <relative_destination_2> # optional - used to specify a directory relative to the root output directory to save the CSV file. Defaults to the root output directory.
+
+The configuration for the :code:`sensor_msgs/NavSatFix` has a reduced set of options.
+
+.. code-block:: yaml
+
+    topic_<id>: 
+        topic_name: <ros_topic_name> # required - used to specify the name of the topic
+        message_type: <ros_message_type> # required - determines the data extraction method
+        output_destination: <relative_destination> # optional - used to specify a directory relative to the root output directory to save the topic data. Defaults to the root_output_directory/topic_<id>.
+        filename: <filename_template> # optional - used to specify a filename, the file extension .yaml will be appended. Defaults to topic_<id>.csv
+        
 
 
 A Complete Example
@@ -127,3 +156,9 @@ A Complete Example
         message_type: sensor_msgs/Image
         filename_template: image_%06d-<ros_timestamp>
         output_destination: images
+
+    topic_2:
+        topic_name: /vectornav/GPS
+        message_type: sensor_msgs/NavSatFix
+        output_destination: data_files
+        filename: gps_data

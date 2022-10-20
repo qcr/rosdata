@@ -15,7 +15,7 @@ Pip package to come.
 Install from Source
 --------------------
 
-We recommend using a conda virtual environment even when installing from source to ensure the ROSData module dependencies do not conflict with your other projects. We recommend the following procedure for installing the rosdata tool from source:
+We recommend using a conda virtual environment when installing from source to ensure the ROSData module dependencies do not conflict with your other projects. We recommend the following procedure for installing the rosdata tool from source:
 
 .. code-block:: bash
     :linenos:
