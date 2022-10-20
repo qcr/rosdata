@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rosdata.utils.datareader &mdash; ROSData 0.1.1 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ROSData
+          </a>
+              <div class="version">
+                0.1.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/cl_tools.html">Command Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/py_module.html">Python Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tools:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/extraction.html">Extraction Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/information.html">Information Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/visualization.html">Visualization Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/manipulation.html">Manipulation Tool</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Python Module Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Common Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html#other-utilities">Other Utilities</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ROSData</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>rosdata.utils.datareader</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rosdata.utils.datareader</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1">###############</span>
+<span class="c1">### MODULES ###</span>
+<span class="c1">###############</span>
+
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">spatialmath</span> <span class="k">as</span> <span class="nn">sm</span>
+
+<span class="c1">###############</span>
+<span class="c1">### CLASSES ###</span>
+<span class="c1">###############</span>
+
+
+
+<div class="viewcode-block" id="CSVROSDataRow"><a class="viewcode-back" href="../../../reference/csvros_data_row_class.html#rosdata.utils.datareader.CSVROSDataRow">[docs]</a><span class="k">class</span> <span class="nc">CSVROSDataRow</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;A helper class to store a single row of data contained within a CSV file created by ROSData tools.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CSVROSDataRow.__init__"><a class="viewcode-back" href="../../../reference/csvros_data_row_class.html#rosdata.utils.datareader.CSVROSDataRow.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Initialises a CSVROSDataRow object where the class attributes will those contained within the fields argument. For the pose data functions to be accesible the fields argument must contain the strings [&#39;pos_x&#39;, &#39;pos_y&#39;, &#39;pos_z&#39;, &#39;quat_w&#39;, &#39;quat_x&#39;, &#39;quat_y&#39;, &#39;quat_z&#39;]. Numeric data will be stored as floats, all other data will be stored as strings except for the string &#39;none&#39; which will be stored as None.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (list): the values for the provided fields</span>
+<span class="sd">            fields (list): the names for each field provided within the data</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if the length of the fields and data arguments are not equal.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Check fields and data are same length</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The number of fields must be equal to size of the data&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Attempt to convert data to float</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># attempt to convert to float</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">val</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;none&#39;</span><span class="p">:</span>
+                    <span class="c1"># if was the string none, then convert to None type</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="kc">None</span>
+            
+            <span class="c1"># set val</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+        <span class="c1"># Set class variables (attributes)</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fields</span><span class="p">):</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="CSVROSDataRow.get_pose"><a class="viewcode-back" href="../../../reference/csvros_data_row_class.html#rosdata.utils.datareader.CSVROSDataRow.get_pose">[docs]</a>    <span class="k">def</span> <span class="nf">get_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sm</span><span class="o">.</span><span class="n">SE3</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Will retrieve the pose as a Spatial Maths SE3 object. The pose data must be stored under the headers [&#39;pos_x&#39;, &#39;pos_y&#39;, &#39;pos_z&#39;, &#39;quat_w&#39;, &#39;quat_x&#39;, &#39;quat_y&#39;, &#39;quat_z&#39;].</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            sm.SE3: the pose data as a SE object or None if the pose data does not exist.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_pose_data</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="c1"># Conver to spatialmath.SE3 object</span>
+        <span class="n">se3</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">SE3</span><span class="p">(</span><span class="n">data</span><span class="p">[:</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">se3</span><span class="o">.</span><span class="n">A</span><span class="p">[:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">q2r</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">se3</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># return se3</span>
+        <span class="k">return</span> <span class="n">se3</span></div>
+
+<div class="viewcode-block" id="CSVROSDataRow.get_pose_data"><a class="viewcode-back" href="../../../reference/csvros_data_row_class.html#rosdata.utils.datareader.CSVROSDataRow.get_pose_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_pose_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the pose data as individual float values. The pose data must be stored under the headers [&#39;pos_x&#39;, &#39;pos_y&#39;, &#39;pos_z&#39;, &#39;quat_w&#39;, &#39;quat_x&#39;, &#39;quat_y&#39;, &#39;quat_z&#39;].</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: the pose data as a list of floats. Order will be [&#39;pos_x&#39;, &#39;pos_y&#39;, &#39;pos_z&#39;, &#39;quat_w&#39;, &#39;quat_x&#39;, &#39;quat_y&#39;, &#39;quat_z&#39;].</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;pos_x&#39;</span><span class="p">,</span> <span class="s1">&#39;pos_y&#39;</span><span class="p">,</span> <span class="s1">&#39;pos_z&#39;</span><span class="p">,</span> <span class="s1">&#39;quat_w&#39;</span><span class="p">,</span> <span class="s1">&#39;quat_x&#39;</span><span class="p">,</span> <span class="s1">&#39;quat_y&#39;</span><span class="p">,</span> <span class="s1">&#39;quat_z&#39;</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">7</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">data</span></div></div>
+
+
+
+
+<div class="viewcode-block" id="CSVROSData"><a class="viewcode-back" href="../../../reference/csvros_data_class.html#rosdata.utils.datareader.CSVROSData">[docs]</a><span class="k">class</span> <span class="nc">CSVROSData</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;A utility class to provide easy accessibility to a CSV file created by ROSData tools.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CSVROSData.__init__"><a class="viewcode-back" href="../../../reference/csvros_data_class.html#rosdata.utils.datareader.CSVROSData.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">csvfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Initialises a CSVROSData object where the class attributes, referred to as fields, will be the headers of the CSV file. For the pose data functions to be accesible the CSV file must contain the headers [&#39;pos_x&#39;, &#39;pos_y&#39;, &#39;pos_z&#39;, &#39;quat_w&#39;, &#39;quat_x&#39;, &#39;quat_y&#39;, &#39;quat_z&#39;]. Numeric data will be stored as floats, all other data will be stored as strings except for the string &#39;none&#39; which will be stored as None.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            csvfile (str): the path to the ROSData CSV file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Class Variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Read CSV file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">csvfile</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">csvreader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csvreader</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span> <span class="o">=</span> <span class="n">row</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">CSVROSDataRow</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>       </div>
+
+
+<div class="viewcode-block" id="CSVROSData.pose_data_exists"><a class="viewcode-back" href="../../../reference/csvros_data_class.html#rosdata.utils.datareader.CSVROSData.pose_data_exists">[docs]</a>    <span class="k">def</span> <span class="nf">pose_data_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns true if the CSV ROSData file contained pose information.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: true if pose information is available.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_pose_data</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="CSVROSData.get_pose"><a class="viewcode-back" href="../../../reference/csvros_data_class.html#rosdata.utils.datareader.CSVROSData.get_pose">[docs]</a>    <span class="k">def</span> <span class="nf">get_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span> <span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sm</span><span class="o">.</span><span class="n">SE3</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the transform (spatialmath.SE3 object) for the given index.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index (int): the index for the desired transform</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            spatialmath.SE3: returns a spatialmath.SE3 object with the given transform, or None if a transform does not exist for this index.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">get_pose</span><span class="p">()</span>    </div>
+
+
+<div class="viewcode-block" id="CSVROSData.get_pose_data"><a class="viewcode-back" href="../../../reference/csvros_data_class.html#rosdata.utils.datareader.CSVROSData.get_pose_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_pose_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span> <span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the transform (spatialmath.SE3 object) for the given index.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index (int): the index for the desired transform</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            spatialmath.SE3: returns a spatialmath.SE3 object with the given transform, or None if a transform does not exist for this index.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">get_pose_data</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="CSVROSData.field_exists"><a class="viewcode-back" href="../../../reference/csvros_data_class.html#rosdata.utils.datareader.CSVROSData.field_exists">[docs]</a>    <span class="k">def</span> <span class="nf">field_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span> <span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Checks to see if a field exists within this CSV data</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            field (str): the field</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: true if the field exists</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+    
+<div class="viewcode-block" id="CSVROSData.get_data"><a class="viewcode-back" href="../../../reference/csvros_data_class.html#rosdata.utils.datareader.CSVROSData.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets the entire data for a specific index, or the value for a field for a index, or</span>
+<span class="sd">        gets the field for the entire data (e.g., all timestamps). </span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            </span>
+<span class="sd">            | # return data for index 0</span>
+<span class="sd">            | data = csvrosdata_obj.get_data(0)   </span>
+<span class="sd">            </span>
+<span class="sd">            | # return all pos_x data</span>
+<span class="sd">            | data = csvrosdata_obj.get_data(&#39;pos_x&#39;) </span>
+<span class="sd">            </span>
+<span class="sd">            | # return all fields for multiple indices</span>
+<span class="sd">            | data = csvrosdata_obj.get_data([0, 2])  </span>
+
+<span class="sd">            | # return all data for a set of fields</span>
+<span class="sd">            | data = csvrosdata_obj.get_data([&#39;pos_x&#39;, &#39;pos_z&#39;])  </span>
+<span class="sd">            </span>
+<span class="sd">            | # return multiple fields for a specified index or a set of indices</span>
+<span class="sd">            | data = csvrosdata_obj.get_data(0, [&#39;pos_x&#39;, &#39;pos_z&#39;]) </span>
+<span class="sd">            | data = csvrosdata_obj.get_data([0, 2], [&#39;pos_x&#39;, &#39;pos_z&#39;])  </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            indices (int, str, list): the index or indices to be retrieved</span>
+<span class="sd">            fields (optional, int or str): the field or fields to be retrieved</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if too many arguments are provided</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            variable: either the data (list) for a given index, the value for a given index/field or the data (list) for a field across all indices.</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Argument check and conversion to correct format</span>
+        <span class="k">if</span> <span class="n">indices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">indices</span><span class="p">)]</span> <span class="c1"># change to int and convert to list</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">):</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The indices argument must be a integer, float or list of integers or floats.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">fields</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fields</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fields</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="n">fields</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fields</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">):</span>
+            <span class="k">pass</span> <span class="c1"># don&#39;t need to do anything</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The fields argument must be a string, or list of strings.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">retval</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">retval</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">retval</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">retval</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">getattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">])</span>
+
+        <span class="c1"># only return the element if single item in list</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">retval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">retval</span></div>
+        
+
+
+<div class="viewcode-block" id="CSVROSData.__getitem__"><a class="viewcode-back" href="../../../reference/csvros_data_class.html#rosdata.utils.datareader.CSVROSData.__getitem__">[docs]</a>    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Can be used as a shorthand for the get_data method. </span>
+<span class="sd">        </span>
+<span class="sd">        Examples:</span>
+
+<span class="sd">            | # equivalent to csvrosdata_obj.get_data(indices=0)</span>
+<span class="sd">            | csvrosdata_obj[0] </span>
+
+<span class="sd">            | # equivalent to csvrosdata_obj.get_data(fields=&#39;timestamp&#39;)</span>
+<span class="sd">            | csvrosdata_obj[&#39;timestamp&#39;] </span>
+
+<span class="sd">            | # equivalent to csvrosdata_obj.get_data(indices=0, fields=&#39;timestamp&#39;)</span>
+<span class="sd">            | csvrosdata_obj[0, &#39;timestamp&#39;] </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="o">*</span><span class="n">item</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">indices</span><span class="o">=</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">item</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">indices</span><span class="o">=</span><span class="n">item</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">item</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="n">item</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown argument type&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CSVROSData.__len__"><a class="viewcode-back" href="../../../reference/csvros_data_class.html#rosdata.utils.datareader.CSVROSData.__len__">[docs]</a>    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;returns the length of the data</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int: the length of the data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span></div></div>
+
+
+<span class="c1">########################</span>
+<span class="c1">### PUBLIC FUNCTIONS ###</span>
+<span class="c1">########################</span>
+
+
+
+<span class="c1">#########################</span>
+<span class="c1">### PRIVATE FUNCTIONS ###</span>
+<span class="c1">#########################</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, James Mount.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

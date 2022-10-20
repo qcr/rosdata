@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rosdata.core.rosbag_transformer &mdash; ROSData 0.1.1 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ROSData
+          </a>
+              <div class="version">
+                0.1.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/cl_tools.html">Command Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/py_module.html">Python Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tools:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/extraction.html">Extraction Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/information.html">Information Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/visualization.html">Visualization Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/manipulation.html">Manipulation Tool</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Python Module Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Common Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html#other-utilities">Other Utilities</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ROSData</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>rosdata.core.rosbag_transformer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rosdata.core.rosbag_transformer</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1">###############</span>
+<span class="c1">### MODULES ###</span>
+<span class="c1">###############</span>
+
+<span class="kn">import</span> <span class="nn">dill</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">treelib</span>
+<span class="kn">import</span> <span class="nn">spatialmath</span> <span class="k">as</span> <span class="nn">sm</span>
+
+<span class="kn">import</span> <span class="nn">rospy</span>
+<span class="kn">from</span> <span class="nn">geometry_msgs.msg</span> <span class="kn">import</span> <span class="n">Transform</span> <span class="k">as</span> <span class="n">ROSTransformMsg</span>
+
+<span class="c1">###############</span>
+<span class="c1">### CLASSES ###</span>
+<span class="c1">###############</span>
+
+<div class="viewcode-block" id="TransformStatus"><a class="viewcode-back" href="../../../reference/transform_status_enum.html#rosdata.core.rosbag_transformer.TransformStatus">[docs]</a><span class="k">class</span> <span class="nc">TransformStatus</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">SUCCESS</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">UNKNOWN_METHOD</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">NO_MATCHING_TRANSFORM</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">LOOKUP_LIMIT_ERROR</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">CHAIN_LIMIT_ERROR</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">SPATIALMATH_INTERP_ERROR</span> <span class="o">=</span> <span class="mi">5</span></div>
+
+
+<div class="viewcode-block" id="TransformData"><a class="viewcode-back" href="../../../reference/transform_data_class.html#rosdata.core.rosbag_transformer.TransformData">[docs]</a><span class="k">class</span> <span class="nc">TransformData</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Hold transform data in a more useful format. Stores the ROS timestamp as a standard float in seconds. The ROS transform message is stored as a Spatial Maths SE3 object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TransformData.__init__"><a class="viewcode-back" href="../../../reference/transform_data_class.html#rosdata.core.rosbag_transformer.TransformData.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">:</span> <span class="n">rospy</span><span class="o">.</span><span class="n">rostime</span><span class="o">.</span><span class="n">Time</span><span class="p">,</span> <span class="n">transform</span><span class="p">:</span> <span class="n">ROSTransformMsg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Instantiates a TransformData object</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            timestamp (rospy.rostime.Time): the ROS time stamp for the associate transform</span>
+<span class="sd">            transform (ROSTransformMsg): the ROS transform message</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">=</span> <span class="n">timestamp</span><span class="o">.</span><span class="n">to_sec</span><span class="p">()</span>
+
+        <span class="c1"># set transform using spatial maths library</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">SE3</span><span class="p">([</span><span class="n">transform</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">transform</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">transform</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">z</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">A</span><span class="p">[:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">q2r</span><span class="p">([</span><span class="n">transform</span><span class="o">.</span><span class="n">rotation</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">transform</span><span class="o">.</span><span class="n">rotation</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">transform</span><span class="o">.</span><span class="n">rotation</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">transform</span><span class="o">.</span><span class="n">rotation</span><span class="o">.</span><span class="n">z</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="Transforms"><a class="viewcode-back" href="../../../reference/transforms_class.html#rosdata.core.rosbag_transformer.Transforms">[docs]</a><span class="k">class</span> <span class="nc">Transforms</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Stores a list of transforms over time for a given parent and child frame.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Transforms.__init__"><a class="viewcode-back" href="../../../reference/transforms_class.html#rosdata.core.rosbag_transformer.Transforms.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent_frame</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">static_transform</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Instantiates a Transforms object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            parent_frame (str): the name of the parent frame for the transform</span>
+<span class="sd">            child_frame (str): the name of the child frame for the transform</span>
+<span class="sd">            static_transform (bool, optional): set to true if this is a static transform that does not change with time. Defaults to False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent_frame</span> <span class="o">=</span> <span class="n">parent_frame</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">child_frame</span> <span class="o">=</span> <span class="n">child_frame</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">static_transform</span> <span class="o">=</span> <span class="n">static_transform</span></div>
+
+<div class="viewcode-block" id="Transforms.add_transform"><a class="viewcode-back" href="../../../reference/transforms_class.html#rosdata.core.rosbag_transformer.Transforms.add_transform">[docs]</a>    <span class="k">def</span> <span class="nf">add_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">:</span> <span class="n">rospy</span><span class="o">.</span><span class="n">rostime</span><span class="o">.</span><span class="n">Time</span><span class="p">,</span> <span class="n">pose</span><span class="p">:</span> <span class="n">ROSTransformMsg</span><span class="p">,</span> <span class="n">static_transform</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Adds a transform to the list.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            timestamp (rospy.rostime.Time): the ROS timestamp for the transform</span>
+<span class="sd">            pose (ROSTransformMsg): the pose as a ROS transform message</span>
+<span class="sd">            static_transform (bool, optional): if the the transform is static. Defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">static_transform</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># update static transform attribute if required</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">static_transform</span> <span class="o">=</span> <span class="n">static_transform</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">static_transform</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span> <span class="o">=</span> <span class="p">[</span><span class="n">TransformData</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">pose</span><span class="p">)]</span> <span class="c1"># can only be one transform for static transform topics</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TransformData</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">pose</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="ROSBagTransformer"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer">[docs]</a><span class="k">class</span> <span class="nc">ROSBagTransformer</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Class that processes the transform data from a ROS Bag file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ROSBagTransformer.__init__"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructs and initialises a ROSBagTransform object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Major Class Variable Descriptions</span>
+        <span class="c1"># self._frames_dict - a dictionary where the key is a transfer frame and </span>
+        <span class="c1">#       the value is a list containing all child frames of that transfer frame. Is used</span>
+        <span class="c1">#       to build the self._transforms_tree, as the Tree needs to be built from the root and</span>
+        <span class="c1">#       the transforms messages will not necessarily be in correct order.</span>
+        <span class="c1"># self._transforms_tree - a Tree object containing the transfer frame structure.</span>
+        <span class="c1">#       The identifier for each node is the transfer frame. The transforms between </span>
+        <span class="c1">#       a parent and a child frame are stored within the child frame node&#39;s data attribute</span>
+        <span class="c1">#       as a Transforms object. To access the data self._transforms_tree.get_node(&lt;id&gt;).data,</span>
+        <span class="c1">#       to access a specific transform self._transforms_tree.get_node(&lt;id&gt;).data.transforms[&lt;index&gt;]</span>
+        <span class="c1"># self._transforms - a dictionary where the key is a transfer frame name, same as the tree node IDs,</span>
+        <span class="c1">#       the values are Transforms object. The value for each key is linked to the data attribute</span>
+        <span class="c1">#       within each node within the self._transforms_tree Tree object, after the tree has been built.</span>
+        <span class="c1"># self._all_transforms - is a list containing all transforms and has the following row setup </span>
+        <span class="c1">#       [[parent_frame, child_frame], timestamp, TransformData Object]. Order is based on timestamp</span>
+
+        <span class="c1"># Setup variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_frames_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span> <span class="o">=</span> <span class="n">treelib</span><span class="o">.</span><span class="n">Tree</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_transforms</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Following variables are used to store information from most recent self.lookup_transform call,</span>
+        <span class="c1"># to increase following call</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_previous_lookup_transforms_source</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_previous_lookup_transforms_dest</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_static_transform_chain</span> <span class="o">=</span> <span class="kc">None</span></div>
+        
+
+        
+    <span class="k">def</span> <span class="nf">_build_transform_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bag</span><span class="p">,</span> <span class="n">transform_topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">static_transform_topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">tree_root</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;A private function used to help process the transform data in the supplied ROSBag.</span>
+<span class="sd">         This function must be called prior to any other class methods.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            bag (rosbag object): an opened ROSbag object containing the transform data to be processed.</span>
+<span class="sd">            transform_topic (str): used to specify the transform topic.</span>
+<span class="sd">            static_transform_topic (str): used to specify the transform topic.</span>
+<span class="sd">            tree_root (str, optional): used to specify the name of the frame that is the root of the tree. Defaults to none.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            RuntimeError: if there are multiple tree roots and a tree root was not specified.</span>
+<span class="sd">            ValueError: if the specified tree root is not present in the transform tree.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+
+        <span class="c1"># Loop through all tf and static tf messages and get all frames that have children,</span>
+        <span class="c1"># store data as dictionary in self._frame_dict</span>
+        <span class="n">topic_count</span> <span class="o">=</span> <span class="n">bag</span><span class="o">.</span><span class="n">get_message_count</span><span class="p">(</span><span class="n">transform_topic</span><span class="p">)</span> <span class="o">+</span> <span class="n">bag</span><span class="o">.</span><span class="n">get_message_count</span><span class="p">(</span><span class="n">static_transform_topic</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">topic</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">bag</span><span class="o">.</span><span class="n">read_messages</span><span class="p">(</span><span class="n">topics</span><span class="o">=</span><span class="p">[</span><span class="n">transform_topic</span><span class="p">,</span> <span class="n">static_transform_topic</span><span class="p">]),</span> <span class="n">total</span><span class="o">=</span><span class="n">topic_count</span><span class="p">):</span>
+            
+            <span class="c1"># check whether it is a static transform</span>
+            <span class="n">static_transform</span> <span class="o">=</span> <span class="n">topic</span> <span class="o">==</span> <span class="n">static_transform_topic</span>
+
+            <span class="c1"># loop through all transforms in message</span>
+            <span class="k">for</span> <span class="n">transform</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">transforms</span><span class="p">:</span>
+
+                <span class="c1"># get parent and child frame</span>
+                <span class="n">parent_frame</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+                <span class="n">child_frame</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">child_frame_id</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+
+                <span class="c1"># add parent frame as a key the dict if it does not exist</span>
+                <span class="k">if</span> <span class="n">parent_frame</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frames_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_frames_dict</span><span class="p">[</span><span class="n">parent_frame</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+                <span class="c1"># add child as a value to parent if it does not exist</span>
+                <span class="k">if</span> <span class="n">child_frame</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frames_dict</span><span class="p">[</span><span class="n">parent_frame</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_frames_dict</span><span class="p">[</span><span class="n">parent_frame</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child_frame</span><span class="p">)</span>
+
+                <span class="c1"># add child as key to transform dictionary if it doesn&#39;t exist</span>
+                <span class="k">if</span> <span class="n">child_frame</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="p">[</span><span class="n">child_frame</span><span class="p">]</span> <span class="o">=</span> <span class="n">Transforms</span><span class="p">(</span><span class="n">parent_frame</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">,</span> <span class="n">static_transform</span><span class="p">)</span>
+
+                <span class="c1"># add the transform to the transforms object associated with this child frame</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="p">[</span><span class="n">child_frame</span><span class="p">]</span><span class="o">.</span><span class="n">add_transform</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">transform</span><span class="o">.</span><span class="n">transform</span><span class="p">)</span>
+
+                <span class="c1"># add the transform to the list of all transforms</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_all_transforms</span><span class="o">.</span><span class="n">append</span><span class="p">([[</span><span class="n">parent_frame</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">to_sec</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="p">[</span><span class="n">child_frame</span><span class="p">]</span><span class="o">.</span><span class="n">transforms</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+
+        <span class="c1"># sort all transforms into time order</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_transforms</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_all_transforms</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+        <span class="c1"># Determine the absolute root of the tree</span>
+        <span class="k">if</span> <span class="n">tree_root</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">roots</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">tmp_root_frame</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frames_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">found_key</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">for</span> <span class="n">searching_parent_frames</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frames_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">tmp_root_frame</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frames_dict</span><span class="p">[</span><span class="n">searching_parent_frames</span><span class="p">]:</span>
+                        <span class="n">found_key</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="k">break</span>
+            
+                <span class="k">if</span> <span class="n">found_key</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                    <span class="n">roots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_root_frame</span><span class="p">)</span>
+
+            <span class="n">root</span> <span class="o">=</span> <span class="n">roots</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">roots</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">roots_str</span> <span class="o">=</span> <span class="s1">&#39; ,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">roots</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s2">&quot;[&quot;</span><span class="p">,</span><span class="s2">&quot;]&quot;</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;The transform tree in the supplied rosbag has multiple tree roots. Automatic selection of the root cannot occur, please specify the root of the tree. Possible tree roots are: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">roots_str</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">tree_root</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frames_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The specified tree root </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> does not exist in the transform tree.&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">tree_root</span><span class="p">))</span>
+            <span class="n">root</span> <span class="o">=</span> <span class="n">tree_root</span>
+        
+        <span class="c1"># Establish root of the transform tree</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">create_node</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="n">root</span><span class="p">,</span> <span class="n">identifier</span><span class="o">=</span><span class="n">root</span><span class="p">)</span>
+
+        <span class="c1"># Add child frames, starting with root transfer frame, done in recursive manner</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_child_frames</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+
+        <span class="c1"># Change tag of all child frames to static if required</span>
+
+
+    <span class="k">def</span> <span class="nf">_add_child_frames</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;A private function to be used recursively with the self._frames_dict</span>
+<span class="sd">            to add nodes to the transforms tree class variable.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            parent (str): [description]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># get child frames of parent</span>
+        <span class="n">child_frames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frames_dict</span><span class="p">[</span><span class="n">parent</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">child_frame</span> <span class="ow">in</span> <span class="n">child_frames</span><span class="p">:</span>
+            <span class="c1"># create node and add data as reference to the value within the transforms dictionary</span>
+            <span class="n">tag</span> <span class="o">=</span> <span class="n">child_frame</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="p">[</span><span class="n">child_frame</span><span class="p">]</span><span class="o">.</span><span class="n">static_transform</span><span class="p">:</span>
+                <span class="n">tag</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> (static)&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">child_frame</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">create_node</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">,</span> <span class="n">identifier</span><span class="o">=</span><span class="n">child_frame</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="p">[</span><span class="n">child_frame</span><span class="p">])</span>
+
+            <span class="c1"># do the child frames of this child, if it has any</span>
+            <span class="k">if</span> <span class="n">child_frame</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frames_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_add_child_frames</span><span class="p">(</span><span class="n">child_frame</span><span class="p">)</span>
+        
+
+    <span class="k">def</span> <span class="nf">_check_frames_exist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frames</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;checks to see if all frames in the passed list exist within the transform tree.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            frames (list): a string list containing the frames to check.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if the frame does not exist within the tree.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">frames</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_exists</span><span class="p">(</span><span class="n">frame</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The transform frame </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1"> does not exist in the transform tree.&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">frame</span><span class="p">))</span>
+
+    
+<div class="viewcode-block" id="ROSBagTransformer.save"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Saves the ROSBagTransformer object to a file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            filename (str): the absolute path to the file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">dill</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="ROSBagTransformer.load"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Loads a previously saved ROSBagTransformer object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            filename (str): the absolute path to the file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">tmp_dict</span> <span class="o">=</span> <span class="n">dill</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">tmp_dict</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ROSBagTransformer.build_transform_tree"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer.build_transform_tree">[docs]</a>    <span class="k">def</span> <span class="nf">build_transform_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bag</span><span class="p">,</span> <span class="n">transform_topic</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;/tf&quot;</span><span class="p">,</span> <span class="n">static_transform_topic</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span><span class="s2">&quot;/tf_static&quot;</span> <span class="p">,</span> <span class="n">tree_root</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Processes the data in the supplied ROSBag, passed during object construction, and builds the</span>
+<span class="sd">        transform tree. This function must be called prior to any other class methods. Depending on the </span>
+<span class="sd">        bag size, this can take a while.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            bag (rosbag object): an opened ROSbag object containing the transform data to be processed.</span>
+<span class="sd">            transform_topic (str, optional): used to specify the transform topic. Defaults to &quot;/tf&quot;.</span>
+<span class="sd">            static_transform_topic (str, optional): used to specify the transform topic. Defaults to &quot;/tf_static&quot;.</span>
+<span class="sd">            tree_root (str, optional): used to specify the name of the frame that is the root of the tree. Defaults to none, which will automatically try and determine the tree root.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            RuntimeError: if there are multiple tree roots and a tree root was not specified.</span>
+<span class="sd">            ValueError: if the specified tree root is not present in the transform tree.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Reset variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_frames_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span> <span class="o">=</span> <span class="n">treelib</span><span class="o">.</span><span class="n">Tree</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_transforms</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Build transform tree</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_transform_tree</span><span class="p">(</span><span class="n">bag</span><span class="p">,</span> <span class="n">transform_topic</span><span class="p">,</span> <span class="n">static_transform_topic</span><span class="p">,</span> <span class="n">tree_root</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ROSBagTransformer.show_tree"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer.show_tree">[docs]</a>    <span class="k">def</span> <span class="nf">show_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Prints the tree to the terminal.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="ROSBagTransformer.frame_exists"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer.frame_exists">[docs]</a>    <span class="k">def</span> <span class="nf">frame_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Checks to see if a frame exists within the transform tree.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            frame (str): the name of the frame to check for</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the frame exists</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ROSBagTransformer.get_common_frame"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer.get_common_frame">[docs]</a>    <span class="k">def</span> <span class="nf">get_common_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame_1</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">frame_2</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;gets the lowest common ancester frame between two frames.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            frame_1 (str): the first transform frame</span>
+<span class="sd">            frame_2 (str): the second transform frame</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: the name of the lowest commom ancestor transform frame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># check to see which frame is deeper</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">depth</span><span class="p">(</span><span class="n">frame_1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">depth</span><span class="p">(</span><span class="n">frame_2</span><span class="p">):</span>
+            <span class="c1"># frame 1 is further down tree</span>
+            <span class="n">lower_frame</span> <span class="o">=</span> <span class="n">frame_1</span>
+            <span class="n">higher_frame</span> <span class="o">=</span> <span class="n">frame_2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># frame 2 is further down tree</span>
+            <span class="n">lower_frame</span> <span class="o">=</span> <span class="n">frame_2</span>
+            <span class="n">higher_frame</span> <span class="o">=</span> <span class="n">frame_1</span>
+
+        <span class="c1"># go until lower frame has same depth as higher frame</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">depth</span><span class="p">(</span><span class="n">lower_frame</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">depth</span><span class="p">(</span><span class="n">higher_frame</span><span class="p">):</span>
+            <span class="n">lower_frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">parent</span><span class="p">(</span><span class="n">lower_frame</span><span class="p">)</span><span class="o">.</span><span class="n">identifier</span>
+
+        <span class="c1"># move both up one level until lower frame equals higher frame</span>
+        <span class="k">while</span> <span class="n">lower_frame</span> <span class="o">!=</span> <span class="n">higher_frame</span><span class="p">:</span>
+            <span class="n">lower_frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">parent</span><span class="p">(</span><span class="n">lower_frame</span><span class="p">)</span><span class="o">.</span><span class="n">identifier</span>
+            <span class="n">higher_frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">parent</span><span class="p">(</span><span class="n">higher_frame</span><span class="p">)</span><span class="o">.</span><span class="n">identifier</span>
+
+        <span class="c1"># return</span>
+        <span class="k">return</span> <span class="n">lower_frame</span></div>
+
+    
+<div class="viewcode-block" id="ROSBagTransformer.static_transform"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer.static_transform">[docs]</a>    <span class="k">def</span> <span class="nf">static_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;determines if the transform chain from a source to a destination frame is static.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            source (str): the name of the source frame</span>
+<span class="sd">            dest (str): the name of the destination frame (does not need to be directly connected to the source frame)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if the source or destination frame does not exist within the tree.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: returns true if the transform chain is static.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># check frames exist in the tree</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_frames_exist</span><span class="p">([</span><span class="n">source</span><span class="p">,</span> <span class="n">dest</span><span class="p">])</span>
+
+        <span class="c1"># check to see if each transform link in the chain is</span>
+        <span class="n">transform_chain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">transform_pair</span> <span class="ow">in</span> <span class="n">transform_chain</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">transform_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">static_transform</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># return true</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="ROSBagTransformer.get_transform_tree_frames"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer.get_transform_tree_frames">[docs]</a>    <span class="k">def</span> <span class="nf">get_transform_tree_frames</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;returns the transform tree as a dictionary</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: the transform tree</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="ROSBagTransformer.get_chain"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer.get_chain">[docs]</a>    <span class="k">def</span> <span class="nf">get_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">return_type</span><span class="p">:</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;gets the transform chain from a source to a destination frame. The source frame does not need to</span>
+<span class="sd">        be directly connected to the dest.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            source (str): the name of the source (i.e., start) frame</span>
+<span class="sd">            dest (str): the name of the dest (i.e., end) frame (does not need to be directly connected to the source)</span>
+<span class="sd">            return_type (type, optional): used to specify the return type. Defaults to tuple.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if the source or destination frame does not exist within the tree.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Union[tuple, list]: returns either a tuple or list. If the return_type is set to tuple,</span>
+<span class="sd">                the returned value will contain a tuple of pairs holding the names of directly </span>
+<span class="sd">                connected source to destination frames within the chain. If the return_type is set to </span>
+<span class="sd">                a list, the returned value will be a list containing the names of the </span>
+<span class="sd">                frames in the transform chain.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># check frames exist in the tree</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_frames_exist</span><span class="p">([</span><span class="n">source</span><span class="p">,</span> <span class="n">dest</span><span class="p">])</span>
+
+        <span class="c1"># quick check</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="n">dest</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">return_type</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[]</span>
+            <span class="k">elif</span> <span class="n">return_type</span> <span class="o">==</span> <span class="nb">tuple</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">()</span>
+
+        <span class="c1"># Get lowest common ancester</span>
+        <span class="n">common_frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_common_frame</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+
+        <span class="c1"># Create subtree with the common frame as the root, then use rsearch to get paths</span>
+        <span class="n">tmp_tree</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">subtree</span><span class="p">(</span><span class="n">common_frame</span><span class="p">)</span>
+        <span class="n">source_to_common</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tmp_tree</span><span class="o">.</span><span class="n">rsearch</span><span class="p">(</span><span class="n">source</span><span class="p">))</span>
+        <span class="n">common_to_dest</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">tmp_tree</span><span class="o">.</span><span class="n">rsearch</span><span class="p">(</span><span class="n">dest</span><span class="p">))))</span>
+        
+        <span class="c1"># Create return list</span>
+        <span class="n">retval_list</span> <span class="o">=</span> <span class="n">source_to_common</span> <span class="o">+</span> <span class="n">common_to_dest</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="c1"># return</span>
+        <span class="k">if</span> <span class="n">return_type</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">retval_list</span>
+        <span class="k">elif</span> <span class="n">return_type</span> <span class="o">==</span> <span class="nb">tuple</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">retval_list</span><span class="p">[</span><span class="n">idx</span><span class="p">:</span><span class="n">idx</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">retval_list</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)])</span></div>
+
+    
+<div class="viewcode-block" id="ROSBagTransformer.lookup_transforms"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer.lookup_transforms">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_transforms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;looks up and returns the transforms between a source and destination frame. </span>
+<span class="sd">        If the transform is a chain (i.e., the source and destination are not directly </span>
+<span class="sd">        connected) the transform will be updated whenever one of the transforms </span>
+<span class="sd">        in the chain is updated.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            source (str): the name of the source frame</span>
+<span class="sd">            dest (str): the name of the destination frame</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if the source or destination frame does not exist within the tree.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: returned tuple with types (list, bool). The list contains the </span>
+<span class="sd">                transforms between the source and destination. The  list will have the form </span>
+<span class="sd">                [timestamp (float), chain_differential (float), transform (SE3 object)]</span>
+<span class="sd">                where timestamp is the most recent timestamp in the transform chain used</span>
+<span class="sd">                to create the entire transform. The chain_differential is the difference</span>
+<span class="sd">                between the most recent and oldest timestamp in the transform chain used</span>
+<span class="sd">                to create the overall transform. The transform is an SE3 object containing</span>
+<span class="sd">                the total transform between the source and destination frame. </span>
+<span class="sd">                The boolean represents if the entire chain is static.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># check frames exist in the tree</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_frames_exist</span><span class="p">([</span><span class="n">source</span><span class="p">,</span> <span class="n">dest</span><span class="p">])</span>
+
+        <span class="c1"># variables</span>
+        <span class="n">transforms_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># get all frames within the chain</span>
+        <span class="n">transform_chain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+
+        <span class="c1"># check to see if entire transform chain is static</span>
+        <span class="n">static_transform_chain</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">transform_pair</span> <span class="ow">in</span> <span class="n">transform_chain</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">static_transform</span><span class="p">(</span><span class="n">transform_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">transform_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="n">static_transform_chain</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+
+        <span class="c1"># if the frames are directly connected, get the transform data</span>
+        <span class="c1"># from the destination node and return the transform list</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">parent</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span><span class="o">.</span><span class="n">identifier</span> <span class="o">==</span> <span class="n">source</span><span class="p">:</span>
+            <span class="n">transforms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_tree</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">transforms</span>
+            <span class="k">for</span> <span class="n">transform</span> <span class="ow">in</span> <span class="n">transforms</span><span class="p">:</span>
+                <span class="n">transforms_list</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">transform</span><span class="o">.</span><span class="n">timestamp</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">transform</span><span class="o">.</span><span class="n">transform</span><span class="p">])</span>
+
+            <span class="k">return</span> <span class="n">transforms_list</span><span class="p">,</span> <span class="n">static_transform_chain</span>
+
+        <span class="c1"># create transform list containing most recent transform for each</span>
+        <span class="c1"># transform pair in the chain. Index corresponds to the pair</span>
+        <span class="c1"># within the chain and the value holds a TransformData object</span>
+        <span class="n">most_recent_transforms</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">transform_chain</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">transform</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_transforms</span><span class="p">:</span>
+            <span class="c1"># Check to see if this transform is within the transform</span>
+            <span class="c1"># chain. If it isn&#39;t continue to the next transform</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">transform</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">transform_chain</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Get the index in the transform chain associated with</span>
+            <span class="c1"># this transform and set the appropriate index in</span>
+            <span class="c1"># the most_recent_transforms to this TransformData object</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">transform_chain</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">transform</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">most_recent_transforms</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">transform</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+            <span class="c1"># only start creating the transform list, to be returned,</span>
+            <span class="c1"># after the entire chain has been completed</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">in</span> <span class="n">most_recent_transforms</span><span class="p">:</span>
+                <span class="c1"># setup variables</span>
+                <span class="n">tot_transform</span> <span class="o">=</span> <span class="n">most_recent_transforms</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span>
+                <span class="c1"># timestamps holds the timestamp and whether it is a static transform</span>
+                <span class="n">timestamps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">transform_chain</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> 
+                <span class="n">timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">most_recent_transforms</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">timestamp</span>
+                <span class="n">timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">static_transform</span><span class="p">(</span><span class="n">transform_chain</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">transform_chain</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+                
+                <span class="c1"># loop through remaining transforms in most recent transforms list</span>
+                <span class="k">for</span> <span class="n">idy</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">most_recent_transforms</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="n">tot_transform</span> <span class="o">=</span> <span class="n">tot_transform</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">transform</span> <span class="c1"># total transform of the chain </span>
+                    <span class="n">timestamps</span><span class="p">[</span><span class="n">idy</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">timestamp</span>
+                    <span class="n">timestamps</span><span class="p">[</span><span class="n">idy</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">static_transform</span><span class="p">(</span><span class="n">transform_chain</span><span class="p">[</span><span class="n">idy</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">transform_chain</span><span class="p">[</span><span class="n">idy</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+                
+                <span class="c1"># determine chain time differential, need to consider static transforms</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">timestamps</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="kc">True</span><span class="p">):</span>
+                    <span class="c1"># all are static transforms, take most recent and set different to 0</span>
+                    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">timestamps</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">timestamp_diff</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># only utilise dynamic transforms to for timestamp </span>
+                    <span class="n">dynamic_timestamps</span> <span class="o">=</span> <span class="n">timestamps</span><span class="p">[</span><span class="n">timestamps</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="kc">False</span><span class="p">]</span>
+                    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dynamic_timestamps</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">timestamp_diff</span> <span class="o">=</span> <span class="n">timestamp</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dynamic_timestamps</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span>
+
+                <span class="c1"># append to transform list [timestamp, largest_timestamp_differential_in_chain, total_transform]</span>
+                <span class="n">transforms_list</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">timestamp_diff</span><span class="p">,</span> <span class="n">tot_transform</span><span class="p">])</span>
+
+                <span class="c1"># if entire chain is static will never change, so can return now</span>
+                <span class="k">if</span> <span class="n">static_transform_chain</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+        <span class="c1"># return transforms, sorted based on timestamp (should already be sorted but, just in case)</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">transforms_list</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span> <span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">static_transform_chain</span></div>
+
+    
+<div class="viewcode-block" id="ROSBagTransformer.lookup_transform"><a class="viewcode-back" href="../../../reference/rosbag_transformer_class.html#rosdata.core.rosbag_transformer.ROSBagTransformer.lookup_transform">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">,</span> <span class="n">lookup_limit</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">chain_limit</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Looks up and returns the transform between a source and destination frame for a given time. If the entire transform chain</span>
+<span class="sd">        is static then the method and limit arguments are ignored.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            source (str): the name of the source frame</span>
+<span class="sd">            dest (str): the name of the destination frame</span>
+<span class="sd">            time (float): the time at which to look up the transform</span>
+<span class="sd">            method (str, optional): the method to use when looking up the transform. </span>
+<span class="sd">                Options include &quot;exact&quot;, &quot;recent&quot;, &quot;nearest&quot;, and &quot;interpolate&quot;. Defaults to &quot;nearest&quot;.</span>
+<span class="sd">                Exact - will attempt to get an exact transform based on the desired time.</span>
+<span class="sd">                Recent - will return a transform only if there is a past transform within the lookup_limit.</span>
+<span class="sd">                Nearest - will return a future or past transform if there is one within the lookup_limit.</span>
+<span class="sd">                Interpolate - will return an interpolated transform only if there is a transform either side</span>
+<span class="sd">                of the desired time within the lookup_limit.</span>
+<span class="sd">            lookup_limit (float, optional): the limit to use when looking up a transform. If a transform </span>
+<span class="sd">                between the source and destination frame cannot be found within this limit a TransformStatus.LOOKUP_LIMIT_ERROR </span>
+<span class="sd">                will be returned. Defaults to None.</span>
+<span class="sd">            chain_limit (float, optional): if the selected transform has a chain differential greater than </span>
+<span class="sd">                this value a TransformStatus.CHAIN_LIMIT_ERROR will be returned. Defaults to None.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if the source or destination frame does not exist within the tree.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: returns a tuple containing the [timestamp, chain_differential, transform, transform_status].</span>
+<span class="sd">                the timestamp will be that of the selected transform for the exact, recent and nearest methods,</span>
+<span class="sd">                and be equal to the desired time for the interpolate method. The chain_differential will be</span>
+<span class="sd">                that of the selected transform for the exact, recent and nearest methods, and be the maximum</span>
+<span class="sd">                differential of the two transforms used in the interpolate method.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># check frames exist in the tree</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_frames_exist</span><span class="p">([</span><span class="n">source</span><span class="p">,</span> <span class="n">dest</span><span class="p">])</span>
+
+        <span class="c1"># get the transform list for the specified chain</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_previous_lookup_transforms_source</span> <span class="ow">or</span> <span class="n">dest</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_previous_lookup_transforms_dest</span><span class="p">:</span>
+            <span class="c1"># convert the list to a numpy array</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_static_transform_chain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookup_transforms</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_previous_lookup_transforms_source</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_previous_lookup_transforms_dest</span> <span class="o">=</span> <span class="n">dest</span>
+
+        <span class="c1"># if entire transform chain is static, transform never changes</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_static_transform_chain</span><span class="p">:</span>
+            <span class="c1"># return desired time, chain differential of 0.0, transform and success</span>
+            <span class="k">return</span> <span class="n">time</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">],</span> <span class="n">TransformStatus</span><span class="o">.</span><span class="n">SUCCESS</span>        
+
+        <span class="c1"># get time difference between the list and desired time</span>
+        <span class="n">time_diff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">time</span>
+        
+        <span class="c1"># outcome depends on method</span>
+        <span class="k">if</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;exact&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">time_diff</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="c1"># no transform with exact timestamp</span>
+                <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">TransformStatus</span><span class="o">.</span><span class="n">NO_MATCHING_TRANSFORM</span>  
+            
+            <span class="c1"># get the timestamp, chain differential and transform</span>
+            <span class="n">selected_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">time_diff</span><span class="p">))</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">selected_idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">chain_dif</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">selected_idx</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">selected_idx</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>   
+
+        <span class="k">elif</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;recent&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">time_diff</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="c1"># no transform in past</span>
+                <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">TransformStatus</span><span class="o">.</span><span class="n">NO_MATCHING_TRANSFORM</span> 
+            
+            <span class="c1"># get the timestamp, chain differential and transform</span>
+            <span class="n">selected_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">time_diff</span><span class="p">[</span><span class="n">time_diff</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">selected_idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">chain_dif</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">selected_idx</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">selected_idx</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> 
+
+        <span class="k">elif</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;nearest&quot;</span><span class="p">:</span>
+            <span class="c1"># get the timestamp, chain differential and transform</span>
+            <span class="n">selected_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">time_diff</span><span class="p">))</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">selected_idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">chain_dif</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">selected_idx</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">selected_idx</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>  
+
+        <span class="k">elif</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;interpolate&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">time_diff</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">time_diff</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="c1"># no transform on either side of desired time</span>
+                <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">TransformStatus</span><span class="o">.</span><span class="n">NO_MATCHING_TRANSFORM</span>
+            
+            <span class="c1"># get the index on each side of 0 time difference</span>
+            <span class="n">negative_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">time_diff</span><span class="p">[</span><span class="n">time_diff</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">positive_idx</span> <span class="o">=</span> <span class="n">negative_idx</span> <span class="o">+</span> <span class="mi">1</span>
+
+            <span class="c1"># make sure both values are within the lookup limit</span>
+            <span class="k">if</span> <span class="n">lookup_limit</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">time_diff</span><span class="p">[</span><span class="n">negative_idx</span><span class="p">:</span><span class="n">positive_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">lookup_limit</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">TransformStatus</span><span class="o">.</span><span class="n">LOOKUP_LIMIT_ERROR</span>
+
+            <span class="c1"># get where the desired timestamp is between the two transform points in the range 0 to 1</span>
+            <span class="c1"># use numpy interp function for this</span>
+            <span class="n">point</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">negative_idx</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">positive_idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+            
+            <span class="c1"># interpolate the position</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">negative_idx</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">positive_idx</span><span class="p">][</span><span class="mi">2</span><span class="p">],</span> <span class="n">point</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">A</span><span class="p">)</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span> <span class="c1"># interpolation error</span>
+                <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">TransformStatus</span><span class="o">.</span><span class="n">SPATIALMATH_INTERP_ERROR</span>
+
+            <span class="c1"># set timestamp, to be the desired time</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">time</span>
+
+            <span class="c1"># chain differential set to maximum of the two</span>
+            <span class="n">chain_dif</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">negative_idx</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms_list</span><span class="p">[</span><span class="n">positive_idx</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">TransformStatus</span><span class="o">.</span><span class="n">UNKNOWN_METHOD</span>
+
+        <span class="c1"># check lookup and chain differential limits</span>
+        <span class="k">if</span> <span class="n">lookup_limit</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">timestamp</span> <span class="o">-</span> <span class="n">time</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">lookup_limit</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">TransformStatus</span><span class="o">.</span><span class="n">LOOKUP_LIMIT_ERROR</span>
+        <span class="k">elif</span> <span class="n">chain_limit</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">chain_dif</span> <span class="o">&gt;</span> <span class="n">chain_limit</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">TransformStatus</span><span class="o">.</span><span class="n">CHAIN_LIMIT_ERROR</span>
+
+        <span class="c1"># return</span>
+        <span class="k">return</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">chain_dif</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">TransformStatus</span><span class="o">.</span><span class="n">SUCCESS</span></div></div>
+
+
+<span class="c1">########################</span>
+<span class="c1">### PUBLIC FUNCTIONS ###</span>
+<span class="c1">########################</span>
+
+
+<span class="c1">#########################</span>
+<span class="c1">### PRIVATE FUNCTIONS ###</span>
+<span class="c1">#########################</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, James Mount.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

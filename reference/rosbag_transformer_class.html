@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROSBagTransformer Class &mdash; ROSData 0.1.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="TransformData Class" href="transform_data_class.html" />
+    <link rel="prev" title="ROSBagExtractor Class" href="rosbag_extractor_class.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ROSData
+          </a>
+              <div class="version">
+                0.1.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/cl_tools.html">Command Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/py_module.html">Python Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tools:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tools/extraction.html">Extraction Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/information.html">Information Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/visualization.html">Visualization Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/manipulation.html">Manipulation Tool</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Python Module Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">Common Utilities</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html#other-utilities">Other Utilities</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="rosbag_extractor_class.html">ROSBagExtractor Class</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ROSBagTransformer Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transform_data_class.html">TransformData Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transforms_class.html">Transforms Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="csvros_data_row_class.html">CSVROSDataRow Class</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ROSData</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Common Utilities</a> &raquo;</li>
+      <li>ROSBagTransformer Class</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/reference/rosbag_transformer_class.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="rosbagtransformer-class">
+<h1>ROSBagTransformer Class<a class="headerlink" href="#rosbagtransformer-class" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rosdata.core.rosbag_transformer.</span></span><span class="sig-name descname"><span class="pre">ROSBagTransformer</span></span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer" title="Permalink to this definition"></a></dt>
+<dd><p>A Class that processes the transform data from a ROS Bag file</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Constructs and initialises a ROSBagTransform object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer.build_transform_tree">
+<span class="sig-name descname"><span class="pre">build_transform_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform_topic</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/tf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">static_transform_topic</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/tf_static'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree_root</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer.build_transform_tree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer.build_transform_tree" title="Permalink to this definition"></a></dt>
+<dd><p>Processes the data in the supplied ROSBag, passed during object construction, and builds the
+transform tree. This function must be called prior to any other class methods. Depending on the
+bag size, this can take a while.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bag</strong> (<em>rosbag object</em>) – an opened ROSbag object containing the transform data to be processed.</p></li>
+<li><p><strong>transform_topic</strong> (<em>str</em><em>, </em><em>optional</em>) – used to specify the transform topic. Defaults to “/tf”.</p></li>
+<li><p><strong>static_transform_topic</strong> (<em>str</em><em>, </em><em>optional</em>) – used to specify the transform topic. Defaults to “/tf_static”.</p></li>
+<li><p><strong>tree_root</strong> (<em>str</em><em>, </em><em>optional</em>) – used to specify the name of the frame that is the root of the tree. Defaults to none, which will automatically try and determine the tree root.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>RuntimeError</strong> – if there are multiple tree roots and a tree root was not specified.</p></li>
+<li><p><strong>ValueError</strong> – if the specified tree root is not present in the transform tree.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer.frame_exists">
+<span class="sig-name descname"><span class="pre">frame_exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer.frame_exists"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer.frame_exists" title="Permalink to this definition"></a></dt>
+<dd><p>Checks to see if a frame exists within the transform tree.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>frame</strong> (<em>str</em>) – the name of the frame to check for</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if the frame exists</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer.get_chain">
+<span class="sig-name descname"><span class="pre">get_chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_type:</span> <span class="pre">type</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'tuple'&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer.get_chain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer.get_chain" title="Permalink to this definition"></a></dt>
+<dd><p>gets the transform chain from a source to a destination frame. The source frame does not need to
+be directly connected to the dest.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<em>str</em>) – the name of the source (i.e., start) frame</p></li>
+<li><p><strong>dest</strong> (<em>str</em>) – the name of the dest (i.e., end) frame (does not need to be directly connected to the source)</p></li>
+<li><p><strong>return_type</strong> (<em>type</em><em>, </em><em>optional</em>) – used to specify the return type. Defaults to tuple.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – if the source or destination frame does not exist within the tree.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>returns either a tuple or list. If the return_type is set to tuple,</dt><dd><p>the returned value will contain a tuple of pairs holding the names of directly
+connected source to destination frames within the chain. If the return_type is set to
+a list, the returned value will be a list containing the names of the
+frames in the transform chain.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Union[tuple, list]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer.get_common_frame">
+<span class="sig-name descname"><span class="pre">get_common_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame_1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer.get_common_frame"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer.get_common_frame" title="Permalink to this definition"></a></dt>
+<dd><p>gets the lowest common ancester frame between two frames.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frame_1</strong> (<em>str</em>) – the first transform frame</p></li>
+<li><p><strong>frame_2</strong> (<em>str</em>) – the second transform frame</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the name of the lowest commom ancestor transform frame</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer.get_transform_tree_frames">
+<span class="sig-name descname"><span class="pre">get_transform_tree_frames</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer.get_transform_tree_frames"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer.get_transform_tree_frames" title="Permalink to this definition"></a></dt>
+<dd><p>returns the transform tree as a dictionary</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the transform tree</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer.load">
+<span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer.load" title="Permalink to this definition"></a></dt>
+<dd><p>Loads a previously saved ROSBagTransformer object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – the absolute path to the file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer.lookup_transform">
+<span class="sig-name descname"><span class="pre">lookup_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'nearest'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lookup_limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain_limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer.lookup_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer.lookup_transform" title="Permalink to this definition"></a></dt>
+<dd><p>Looks up and returns the transform between a source and destination frame for a given time. If the entire transform chain
+is static then the method and limit arguments are ignored.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<em>str</em>) – the name of the source frame</p></li>
+<li><p><strong>dest</strong> (<em>str</em>) – the name of the destination frame</p></li>
+<li><p><strong>time</strong> (<em>float</em>) – the time at which to look up the transform</p></li>
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – the method to use when looking up the transform.
+Options include “exact”, “recent”, “nearest”, and “interpolate”. Defaults to “nearest”.
+Exact - will attempt to get an exact transform based on the desired time.
+Recent - will return a transform only if there is a past transform within the lookup_limit.
+Nearest - will return a future or past transform if there is one within the lookup_limit.
+Interpolate - will return an interpolated transform only if there is a transform either side
+of the desired time within the lookup_limit.</p></li>
+<li><p><strong>lookup_limit</strong> (<em>float</em><em>, </em><em>optional</em>) – the limit to use when looking up a transform. If a transform
+between the source and destination frame cannot be found within this limit a TransformStatus.LOOKUP_LIMIT_ERROR
+will be returned. Defaults to None.</p></li>
+<li><p><strong>chain_limit</strong> (<em>float</em><em>, </em><em>optional</em>) – if the selected transform has a chain differential greater than
+this value a TransformStatus.CHAIN_LIMIT_ERROR will be returned. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – if the source or destination frame does not exist within the tree.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>returns a tuple containing the [timestamp, chain_differential, transform, transform_status].</dt><dd><p>the timestamp will be that of the selected transform for the exact, recent and nearest methods,
+and be equal to the desired time for the interpolate method. The chain_differential will be
+that of the selected transform for the exact, recent and nearest methods, and be the maximum
+differential of the two transforms used in the interpolate method.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer.lookup_transforms">
+<span class="sig-name descname"><span class="pre">lookup_transforms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer.lookup_transforms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer.lookup_transforms" title="Permalink to this definition"></a></dt>
+<dd><p>looks up and returns the transforms between a source and destination frame.
+If the transform is a chain (i.e., the source and destination are not directly
+connected) the transform will be updated whenever one of the transforms
+in the chain is updated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<em>str</em>) – the name of the source frame</p></li>
+<li><p><strong>dest</strong> (<em>str</em>) – the name of the destination frame</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – if the source or destination frame does not exist within the tree.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>returned tuple with types (list, bool). The list contains the</dt><dd><p>transforms between the source and destination. The  list will have the form
+[timestamp (float), chain_differential (float), transform (SE3 object)]
+where timestamp is the most recent timestamp in the transform chain used
+to create the entire transform. The chain_differential is the difference
+between the most recent and oldest timestamp in the transform chain used
+to create the overall transform. The transform is an SE3 object containing
+the total transform between the source and destination frame.
+The boolean represents if the entire chain is static.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer.save" title="Permalink to this definition"></a></dt>
+<dd><p>Saves the ROSBagTransformer object to a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – the absolute path to the file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer.show_tree">
+<span class="sig-name descname"><span class="pre">show_tree</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer.show_tree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer.show_tree" title="Permalink to this definition"></a></dt>
+<dd><p>Prints the tree to the terminal.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_transformer.ROSBagTransformer.static_transform">
+<span class="sig-name descname"><span class="pre">static_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/rosdata/core/rosbag_transformer.html#ROSBagTransformer.static_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_transformer.ROSBagTransformer.static_transform" title="Permalink to this definition"></a></dt>
+<dd><p>determines if the transform chain from a source to a destination frame is static.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<em>str</em>) – the name of the source frame</p></li>
+<li><p><strong>dest</strong> (<em>str</em>) – the name of the destination frame (does not need to be directly connected to the source frame)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – if the source or destination frame does not exist within the tree.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>returns true if the transform chain is static.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rosbag_extractor_class.html" class="btn btn-neutral float-left" title="ROSBagExtractor Class" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="transform_data_class.html" class="btn btn-neutral float-right" title="TransformData Class" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, James Mount.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

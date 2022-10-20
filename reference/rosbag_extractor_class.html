@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROSBagExtractor Class &mdash; ROSData 0.1.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ROSBagTransformer Class" href="rosbag_transformer_class.html" />
+    <link rel="prev" title="TransformStatus Enum" href="transform_status_enum.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ROSData
+          </a>
+              <div class="version">
+                0.1.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/cl_tools.html">Command Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/py_module.html">Python Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tools:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tools/extraction.html">Extraction Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/information.html">Information Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/visualization.html">Visualization Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/manipulation.html">Manipulation Tool</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Python Module Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">Common Utilities</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html#other-utilities">Other Utilities</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ROSBagExtractor Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rosbag_transformer_class.html">ROSBagTransformer Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transform_data_class.html">TransformData Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transforms_class.html">Transforms Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="csvros_data_row_class.html">CSVROSDataRow Class</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ROSData</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Common Utilities</a> &raquo;</li>
+      <li>ROSBagExtractor Class</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/reference/rosbag_extractor_class.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="rosbagextractor-class">
+<h1>ROSBagExtractor Class<a class="headerlink" href="#rosbagextractor-class" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_extractor.ROSBagExtractor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rosdata.core.rosbag_extractor.</span></span><span class="sig-name descname"><span class="pre">ROSBagExtractor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extraction_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root_output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rosdata/core/rosbag_extractor.html#ROSBagExtractor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_extractor.ROSBagExtractor" title="Permalink to this definition"></a></dt>
+<dd><p>Extracts data from a ROS Bag file given a YAML extraction config</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_extractor.ROSBagExtractor.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extraction_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root_output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rosdata/core/rosbag_extractor.html#ROSBagExtractor.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_extractor.ROSBagExtractor.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Constructs and pre-processes the data structure for further extraction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bag</strong> (<em>rosbag object</em>) – Opened ROSbag object containing data to be extracted</p></li>
+<li><p><strong>extraction_config</strong> (<em>dict</em>) – Dictionary of extraction config parameters</p></li>
+<li><p><strong>root_output_dir</strong> (<em>str</em>) – Root output directory to write data.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rosdata.core.rosbag_extractor.ROSBagExtractor.extract_data">
+<span class="sig-name descname"><span class="pre">extract_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform_topic</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/tf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">static_transform_topic</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/tf_static'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rosdata/core/rosbag_extractor.html#ROSBagExtractor.extract_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#rosdata.core.rosbag_extractor.ROSBagExtractor.extract_data" title="Permalink to this definition"></a></dt>
+<dd><p>Extracts the data from the ROSBag.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>transform_topic</strong> (<em>str</em><em>, </em><em>optional</em>) – used to specify the transform topic. Defaults to “/tf”.</p></li>
+<li><p><strong>static_transform_topic</strong> (<em>str</em><em>, </em><em>optional</em>) – used to specify the transform topic. Defaults to “/tf_static”.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="transform_status_enum.html" class="btn btn-neutral float-left" title="TransformStatus Enum" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rosbag_transformer_class.html" class="btn btn-neutral float-right" title="ROSBagTransformer Class" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, James Mount.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rosdata.core.rosbag_extractor &mdash; ROSData 0.1.1 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ROSData
+          </a>
+              <div class="version">
+                0.1.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/cl_tools.html">Command Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/py_module.html">Python Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tools:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/extraction.html">Extraction Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/information.html">Information Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/visualization.html">Visualization Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/manipulation.html">Manipulation Tool</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Python Module Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html">Common Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/index.html#other-utilities">Other Utilities</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ROSData</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>rosdata.core.rosbag_extractor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rosdata.core.rosbag_extractor</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1">###############</span>
+<span class="c1">### MODULES ###</span>
+<span class="c1">###############</span>
+
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">dill</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">import</span> <span class="nn">cv2</span>
+<span class="kn">import</span> <span class="nn">open3d</span> <span class="k">as</span> <span class="nn">o3d</span>
+<span class="kn">import</span> <span class="nn">spatialmath</span> <span class="k">as</span> <span class="nn">sm</span>
+<span class="kn">from</span> <span class="nn">cv_bridge</span> <span class="kn">import</span> <span class="n">CvBridge</span><span class="p">,</span> <span class="n">CvBridgeError</span>
+
+<span class="kn">from</span> <span class="nn">.rosbag_transformer</span> <span class="kn">import</span> <span class="n">ROSBagTransformer</span>
+
+
+<span class="c1">###############</span>
+<span class="c1">### CLASSES ###</span>
+<span class="c1">###############</span>
+
+
+<div class="viewcode-block" id="ROSBagExtractor"><a class="viewcode-back" href="../../../reference/rosbag_extractor_class.html#rosdata.core.rosbag_extractor.ROSBagExtractor">[docs]</a><span class="k">class</span> <span class="nc">ROSBagExtractor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extracts data from a ROS Bag file given a YAML extraction config</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ROSBagExtractor.__init__"><a class="viewcode-back" href="../../../reference/rosbag_extractor_class.html#rosdata.core.rosbag_extractor.ROSBagExtractor.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bag</span><span class="p">,</span> <span class="n">extraction_config</span> <span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">root_output_dir</span> <span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructs and pre-processes the data structure for further extraction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            bag (rosbag object): Opened ROSbag object containing data to be extracted</span>
+<span class="sd">            extraction_config (dict): Dictionary of extraction config parameters </span>
+<span class="sd">            root_output_dir (str) : Root output directory to write data. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Setup variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bag</span> <span class="o">=</span> <span class="n">bag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span> <span class="o">=</span> <span class="n">extraction_config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">root_output_dir</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">root_output_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bag_transformer</span> <span class="o">=</span> <span class="n">ROSBagTransformer</span><span class="p">()</span> <span class="c1"># an object containing of all the transforms</span>
+
+        <span class="c1"># Variables used to continue from previous execution</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_extraction_state</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_extraction_data</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Get list of topics in the bag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_topics</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bag</span><span class="o">.</span><span class="n">get_type_and_topic_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+        <span class="c1"># Load existing extraction progress</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="ROSBagExtractor.extract_data"><a class="viewcode-back" href="../../../reference/rosbag_extractor_class.html#rosdata.core.rosbag_extractor.ROSBagExtractor.extract_data">[docs]</a>    <span class="k">def</span> <span class="nf">extract_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform_topic</span> <span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s2">&quot;/tf&quot;</span><span class="p">,</span> <span class="n">static_transform_topic</span> <span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s2">&quot;/tf_static&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extracts the data from the ROSBag.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            transform_topic (str, optional): used to specify the transform topic. Defaults to &quot;/tf&quot;.</span>
+<span class="sd">            static_transform_topic (str, optional): used to specify the transform topic. Defaults to &quot;/tf_static&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+       
+        <span class="c1"># Pre-process bag transforms or load existing bag transformer object</span>
+        <span class="n">bag_transformer_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_output_dir</span> <span class="o">/</span> <span class="s2">&quot;.rosdata&quot;</span> <span class="o">/</span> <span class="s2">&quot;bag_transformer.pickle&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">bag_transformer_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="c1"># Get if tree root is specified</span>
+            <span class="n">tree_root</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># default</span>
+            <span class="k">if</span> <span class="s2">&quot;tree_root&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span>  <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="s1">&#39;tree_root&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;None&#39;</span><span class="p">:</span>
+                <span class="n">tree_root</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="s1">&#39;tree_root&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">tree_root</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tree_root</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;none&#39;</span><span class="p">:</span>
+                    <span class="n">tree_root</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Processing the Transforms... Building the transform tree&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bag_transformer</span><span class="o">.</span><span class="n">build_transform_tree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bag</span><span class="p">,</span> <span class="n">transform_topic</span><span class="p">,</span> <span class="n">static_transform_topic</span><span class="p">,</span> <span class="n">tree_root</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Built the following transform tree&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bag_transformer</span><span class="o">.</span><span class="n">show_tree</span><span class="p">()</span>
+
+            <span class="c1"># save progress</span>
+            <span class="p">(</span><span class="n">bag_transformer_file</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bag_transformer</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">bag_transformer_file</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading existing bag transformer&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bag_transformer</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">bag_transformer_file</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The transform tree is&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bag_transformer</span><span class="o">.</span><span class="n">show_tree</span><span class="p">()</span>
+
+        <span class="c1"># Extract dynamic transform data</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Extracting Transform Data&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_extract_dynamic_transform_data</span><span class="p">()</span>
+
+        <span class="c1"># Extract camera info data</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Extracting Camera Info Data&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_extract_camera_info</span><span class="p">()</span>
+
+        <span class="c1"># Extract sensor data</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Extracting Topic Data&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_extract_topic_data</span><span class="p">()</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">ROSBag Extraction Complete&quot;</span><span class="p">)</span></div>
+        
+
+    <span class="k">def</span> <span class="nf">_save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Create rosdata save directory</span>
+        <span class="n">tmp_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_output_dir</span> <span class="o">/</span> <span class="s2">&quot;.rosdata&quot;</span>
+        <span class="n">tmp_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Get the variables/data wish to save</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;_extraction_state&quot;</span><span class="p">,</span> <span class="s2">&quot;_extraction_data&quot;</span><span class="p">]}</span>
+
+        <span class="c1"># Go pickle the data</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">tmp_dir</span> <span class="o">/</span> <span class="s2">&quot;extraction_state.pickle&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">dill</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    
+    <span class="k">def</span> <span class="nf">_load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Only load if exists</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_output_dir</span> <span class="o">/</span> <span class="s2">&quot;.rosdata&quot;</span> <span class="o">/</span> <span class="s2">&quot;extraction_state.pickle&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">filename</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Open data</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">tmp_dict</span> <span class="o">=</span> <span class="n">dill</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> 
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># Update dictionary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">tmp_dict</span><span class="p">)</span>
+
+    
+    <span class="k">def</span> <span class="nf">_topic_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topic</span> <span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">topic</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_topics</span>
+
+
+    <span class="k">def</span> <span class="nf">_extract_dynamic_transform_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extracts the dynamic transforms from the ROSBag. The data is saved as a CSV file at the location</span>
+<span class="sd">            defined in the extraction config file. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Loop through all &quot;transform_&lt;number&gt;&quot; keys in the extraction config dictionary</span>
+        <span class="n">transform_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;transform_&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">transform_key</span> <span class="ow">in</span> <span class="n">transform_keys</span><span class="p">:</span>
+
+            <span class="c1"># get data from extraction config</span>
+            <span class="n">parent_frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">transform_key</span><span class="p">][</span><span class="s2">&quot;parent_frame&quot;</span><span class="p">]</span>
+            <span class="n">child_frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">transform_key</span><span class="p">][</span><span class="s2">&quot;child_frame&quot;</span><span class="p">]</span>
+
+            <span class="c1"># make sure frames exists</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bag_transformer</span><span class="o">.</span><span class="n">frame_exists</span><span class="p">(</span><span class="n">parent_frame</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bag_transformer</span><span class="o">.</span><span class="n">frame_exists</span><span class="p">(</span><span class="n">child_frame</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">ERROR! The transform between </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> and </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> does not exist. Ignoring extraction.&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">parent_frame</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">))</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># check if this data has been extracted in previous run</span>
+            <span class="n">state_key</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">parent_frame</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">state_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extraction_state</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extraction_state</span><span class="p">[</span><span class="n">state_key</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">transform_key</span><span class="p">]:</span>
+                <span class="c1"># has previously been extracted, and with the same config, do not extract data again</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Ignoring extraction of the </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> to </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> transform list. It has previously been extracted&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">parent_frame</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">))</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># continue with extraction</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Extracting </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> to </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> transform list&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">parent_frame</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">))</span>
+
+            <span class="c1"># set output destination and filename</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">transform_key</span> <span class="o">+</span> <span class="s2">&quot;.csv&quot;</span> <span class="c1"># default</span>
+            <span class="k">if</span> <span class="s2">&quot;filename&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">transform_key</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">transform_key</span><span class="p">][</span><span class="s2">&quot;filename&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.csv&quot;</span>
+
+            <span class="n">output_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_output_dir</span> <span class="c1"># default</span>
+            <span class="k">if</span> <span class="s2">&quot;output_destination&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">transform_key</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">output_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_output_dir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">transform_key</span><span class="p">][</span><span class="s2">&quot;output_destination&quot;</span><span class="p">]</span>
+                <span class="n">output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            
+            <span class="c1"># look up when transform updates</span>
+            <span class="n">transform_list</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bag_transformer</span><span class="o">.</span><span class="n">lookup_transforms</span><span class="p">(</span><span class="n">parent_frame</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">)</span>
+
+            <span class="c1"># open csv file</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
+
+                <span class="c1"># create csvwriter object and write header</span>
+                <span class="n">csvwriter</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">csvfile</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+                <span class="n">csvwriter</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="s2">&quot;parent_frame&quot;</span><span class="p">,</span> <span class="s2">&quot;child_frame&quot;</span><span class="p">,</span> <span class="s2">&quot;timestamp&quot;</span><span class="p">,</span> <span class="s2">&quot;pos_x&quot;</span><span class="p">,</span> <span class="s2">&quot;pos_y&quot;</span><span class="p">,</span> <span class="s2">&quot;pos_z&quot;</span><span class="p">,</span> <span class="s2">&quot;quat_w&quot;</span><span class="p">,</span> <span class="s2">&quot;quat_x&quot;</span><span class="p">,</span> <span class="s2">&quot;quat_y&quot;</span><span class="p">,</span> <span class="s2">&quot;quat_z&quot;</span><span class="p">,</span> <span class="s2">&quot;chain_differential&quot;</span><span class="p">])</span>
+
+                <span class="c1"># Write transform list</span>
+                <span class="k">for</span> <span class="n">transform</span> <span class="ow">in</span> <span class="n">transform_list</span><span class="p">:</span>
+                    <span class="n">position</span> <span class="o">=</span> <span class="n">transform</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">A</span><span class="p">[:</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">quat</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">r2q</span><span class="p">(</span><span class="n">transform</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">A</span><span class="p">[:</span><span class="mi">3</span><span class="p">,:</span><span class="mi">3</span><span class="p">])</span>
+
+                    <span class="n">csvwriter</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="n">parent_frame</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">,</span> <span class="n">transform</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> 
+                    <span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">position</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> 
+                    <span class="n">quat</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">quat</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">quat</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">quat</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">transform</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+
+            <span class="c1"># update extraction state and save </span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_extraction_state</span><span class="p">[</span><span class="n">state_key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">transform_key</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+
+    
+    <span class="k">def</span> <span class="nf">_extract_camera_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extracts the camera info data from the ROSBag.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Loop through all &quot;camera_info_&lt;number&gt;&quot; keys in the extraction config dictionary</span>
+        <span class="n">camera_info_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;camera_info_&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">camera_info_key</span> <span class="ow">in</span> <span class="n">camera_info_keys</span><span class="p">:</span>
+            <span class="c1"># get camera info topic</span>
+            <span class="n">camera_info_topic</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">camera_info_key</span><span class="p">][</span><span class="s2">&quot;topic_name&quot;</span><span class="p">]</span>
+
+            <span class="c1"># check topic exists</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_topic_exists</span><span class="p">(</span><span class="n">camera_info_topic</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">ERROR! The topic </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> does not exist. Ignoring extraction.&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">camera_info_topic</span><span class="p">))</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># check if this data has been extracted in previous run</span>
+            <span class="k">if</span> <span class="n">camera_info_topic</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extraction_state</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extraction_state</span><span class="p">[</span><span class="n">camera_info_topic</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">camera_info_key</span><span class="p">]:</span>
+                <span class="c1"># has previously been extracted, and with the same config, do not extract data again</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Ignoring extraction of the </span><span class="si">%s</span><span class="s2"> camera info topic. It has previously been extracted&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">camera_info_topic</span><span class="p">))</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># continue with extraction</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Extracting camera info from </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">camera_info_topic</span><span class="p">))</span>
+
+            <span class="c1"># set filename and output destination</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">camera_info_key</span> <span class="o">+</span> <span class="s2">&quot;.yaml&quot;</span> <span class="c1"># default</span>
+            <span class="k">if</span> <span class="s2">&quot;filename&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">camera_info_key</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">camera_info_key</span><span class="p">][</span><span class="s2">&quot;filename&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.yaml&quot;</span>
+
+            <span class="n">output_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_output_dir</span> <span class="c1"># default</span>
+            <span class="k">if</span> <span class="s2">&quot;output_destination&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">camera_info_key</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">output_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_output_dir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">camera_info_key</span><span class="p">][</span><span class="s2">&quot;output_destination&quot;</span><span class="p">]</span>
+                <span class="n">output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># Get and save camera info</span>
+            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bag</span><span class="o">.</span><span class="n">read_messages</span><span class="p">(</span><span class="n">topics</span><span class="o">=</span><span class="p">[</span><span class="n">camera_info_topic</span><span class="p">]):</span>
+
+                <span class="c1"># Save camera info </span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>                                        
+                    <span class="n">y</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">msg</span><span class="p">),</span> <span class="n">Loader</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">FullLoader</span><span class="p">)</span>
+                    <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+                    <span class="k">pass</span>
+                <span class="k">break</span> <span class="c1"># camera info stays static</span>
+
+            <span class="c1"># update extraction state and save </span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_extraction_state</span><span class="p">[</span><span class="n">camera_info_topic</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">camera_info_key</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+
+
+    <span class="k">def</span> <span class="nf">_extract_topic_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extracts the topic data from the ROSBag.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Loop through all &quot;topic_&lt;number&gt;&quot; keys in the extraction config dictionary</span>
+        <span class="n">topic_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;topic_&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">topic_key</span> <span class="ow">in</span> <span class="n">topic_keys</span><span class="p">:</span>
+            <span class="c1"># topic name</span>
+            <span class="n">topic_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">][</span><span class="s2">&quot;topic_name&quot;</span><span class="p">]</span>
+
+            <span class="c1"># check topic exists</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_topic_exists</span><span class="p">(</span><span class="n">topic_name</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">ERROR! The topic </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> does not exist. Ignoring extraction.&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">topic_name</span><span class="p">))</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># check if this data has been extracted in previous run</span>
+            <span class="k">if</span> <span class="n">topic_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extraction_state</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extraction_state</span><span class="p">[</span><span class="n">topic_name</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">]:</span>
+                <span class="c1"># has previously been extracted, and with the same config, do not extract data again</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Ignoring extraction of the </span><span class="si">%s</span><span class="s2"> topic data. It has previously been extracted&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">topic_name</span><span class="p">))</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># set ouput directory and create</span>
+            <span class="n">output_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_output_dir</span> <span class="o">/</span> <span class="n">topic_key</span> <span class="c1"># default</span>
+            <span class="k">if</span> <span class="s2">&quot;output_destination&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">output_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_output_dir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">][</span><span class="s2">&quot;output_destination&quot;</span><span class="p">]</span>
+            <span class="n">output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># extract topic data and return filelist</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Extracting topic </span><span class="si">%s</span><span class="s2"> data&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">topic_name</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">][</span><span class="s2">&quot;message_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;sensor_msgs/image&quot;</span><span class="p">:</span>
+                <span class="n">filelist</span><span class="p">,</span> <span class="n">topic_frame_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_image_topic</span><span class="p">(</span><span class="n">topic_key</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">][</span><span class="s2">&quot;message_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;sensor_msgs/compressedimage&quot;</span><span class="p">:</span>
+                <span class="n">filelist</span><span class="p">,</span> <span class="n">topic_frame_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_image_compressed_topic</span><span class="p">(</span><span class="n">topic_key</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">][</span><span class="s2">&quot;message_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;sensor_msgs/pointcloud2&quot;</span><span class="p">:</span>
+                <span class="n">filelist</span><span class="p">,</span> <span class="n">topic_frame_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_pointcloud_2_topic</span><span class="p">(</span><span class="n">topic_key</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">][</span><span class="s2">&quot;message_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;sensor_msgs/navsatfix&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_extract_navsatfix_topic</span><span class="p">(</span><span class="n">topic_key</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unknown message type </span><span class="si">%s</span><span class="s2">. Ignoring topic data extraction&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">topic_name</span><span class="p">))</span>
+
+            <span class="c1"># output transform list if required</span>
+            <span class="k">if</span> <span class="s2">&quot;transforms&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Writing out transform file(s) for topic </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">topic_name</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_write_topic_transform_file</span><span class="p">(</span><span class="n">topic_key</span><span class="p">,</span> <span class="n">topic_frame_id</span><span class="p">,</span> <span class="n">filelist</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span>
+
+            <span class="c1"># update extraction state and save </span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_extraction_state</span><span class="p">[</span><span class="n">topic_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+              
+
+    <span class="k">def</span> <span class="nf">_get_common_topic_extraction_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topic_key</span> <span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the common data for a topic</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            topic_key (str): the topic id key (e.g., &#39;topic_1&#39;)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: returns a tuple with the topic name, the filename for the associated data file, and the filename template for associated sensor frames (e.g., for each image)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get topic name </span>
+        <span class="n">topic_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">][</span><span class="s2">&quot;topic_name&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Get filename</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">topic_name</span> <span class="c1"># default</span>
+        <span class="k">if</span> <span class="s2">&quot;filename&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">][</span><span class="s2">&quot;filename&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Get filename template</span>
+        <span class="n">filename_template</span> <span class="o">=</span> <span class="s2">&quot;frame_</span><span class="si">%06d</span><span class="s2">&quot;</span> <span class="c1"># default</span>
+        <span class="k">if</span> <span class="s2">&quot;filename_template&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">filename_template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">][</span><span class="s2">&quot;filename_template&quot;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">topic_name</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">filename_template</span>
+
+
+    <span class="k">def</span> <span class="nf">_extract_image_topic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topic_key</span> <span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_dir</span> <span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Extracts an image topic (ROS message type sensor_msgs/Image) from the ROSBag.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            topic_key (str): the topic key (e.g., topic_0) used to identify the portion</span>
+<span class="sd">                of the extraction config data containing the extraction parameters.</span>
+<span class="sd">            output_dir (pathlib.Path): the output directory to write this data to</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: returns a tuple(list, str). The list contains the filenames </span>
+<span class="sd">                and timestamps [filaname (str), timestamp (float)]. The string</span>
+<span class="sd">                contains the frame ID for the topic.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Get topic name and filename template</span>
+        <span class="n">topic_name</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">filename_template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_common_topic_extraction_data</span><span class="p">(</span><span class="n">topic_key</span><span class="p">)</span>
+
+        <span class="c1"># Define Variables</span>
+        <span class="n">cv_bridge</span> <span class="o">=</span> <span class="n">CvBridge</span><span class="p">()</span>
+        <span class="n">topic_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bag</span><span class="o">.</span><span class="n">get_message_count</span><span class="p">(</span><span class="n">topic_name</span><span class="p">)</span>
+        <span class="n">frame_list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="n">topic_count</span> <span class="c1"># pre-allocate list memory</span>
+
+        <span class="c1"># Loop through bag</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bag</span><span class="o">.</span><span class="n">read_messages</span><span class="p">(</span><span class="n">topics</span><span class="o">=</span><span class="p">[</span><span class="n">topic_name</span><span class="p">]),</span> <span class="n">total</span><span class="o">=</span><span class="n">topic_count</span><span class="p">)):</span>
+            <span class="c1"># Create image filename</span>
+            <span class="n">timestamp_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">to_sec</span><span class="p">())</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+            <span class="n">image_filename</span> <span class="o">=</span> <span class="p">(</span><span class="n">filename_template</span><span class="o">%</span><span class="p">(</span><span class="n">idx</span><span class="p">))</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&lt;ros_timestamp&gt;&quot;</span><span class="p">,</span> <span class="n">timestamp_str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.jpeg&quot;</span>
+
+            <span class="c1"># Save image, but first need to convert to OpenCV image</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">cv_image</span> <span class="o">=</span> <span class="n">cv_bridge</span><span class="o">.</span><span class="n">imgmsg_to_cv2</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="s2">&quot;bgr8&quot;</span><span class="p">)</span>
+                <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="n">image_filename</span><span class="p">),</span> <span class="n">cv_image</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">CvBridgeError</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unable to convert image </span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">idx</span><span class="p">))</span>
+
+            <span class="c1"># Add image to image_list</span>
+            <span class="n">frame_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">image_filename</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">to_sec</span><span class="p">()]</span>
+
+        <span class="c1"># get topic frame id and return list </span>
+        <span class="n">topic_frame_id</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span>
+        <span class="k">return</span> <span class="n">frame_list</span><span class="p">,</span> <span class="n">topic_frame_id</span>
+
+    
+    <span class="k">def</span> <span class="nf">_extract_image_compressed_topic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topic_key</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extracts a compressed image topic (ROS message type sensor_msgs/CompressedImage) </span>
+<span class="sd">        from the ROSBag.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            topic_key (str): the topic key (e.g., topic_0) used to identify the portion</span>
+<span class="sd">                of the extraction config data containing the extraction parameters.</span>
+<span class="sd">            output_dir (pathlib.Path): the output directory to write this data to</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: returns a tuple(list, str). The list contains the filenames </span>
+<span class="sd">                and timestamps [filaname (str), timestamp (float)]. The string</span>
+<span class="sd">                contains the frame ID for the topic.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Get topic name and filename template</span>
+        <span class="n">topic_name</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">filename_template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_common_topic_extraction_data</span><span class="p">(</span><span class="n">topic_key</span><span class="p">)</span>
+
+        <span class="c1"># Define variables</span>
+        <span class="n">topic_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bag</span><span class="o">.</span><span class="n">get_message_count</span><span class="p">(</span><span class="n">topic_name</span><span class="p">)</span>
+        <span class="n">frame_list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="n">topic_count</span> <span class="c1"># pre-allocate list memory</span>
+
+        <span class="c1"># Loop through bag</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bag</span><span class="o">.</span><span class="n">read_messages</span><span class="p">(</span><span class="n">topics</span><span class="o">=</span><span class="p">[</span><span class="n">topic_name</span><span class="p">]),</span> <span class="n">total</span><span class="o">=</span><span class="n">topic_count</span><span class="p">)):</span>
+            <span class="c1"># Create image filename</span>
+            <span class="n">timestamp_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">to_sec</span><span class="p">())</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+            <span class="n">image_filename</span> <span class="o">=</span> <span class="p">(</span><span class="n">filename_template</span><span class="o">%</span><span class="p">(</span><span class="n">idx</span><span class="p">))</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&lt;ros_timestamp&gt;&quot;</span><span class="p">,</span> <span class="n">timestamp_str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.jpeg&quot;</span>
+
+            <span class="c1"># Save image directly</span>
+            <span class="n">image_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="n">image_filename</span><span class="p">,</span> <span class="s2">&quot;wb+&quot;</span><span class="p">)</span>
+            <span class="n">image_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">image_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+            <span class="c1"># Add image to frame_list</span>
+            <span class="n">frame_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">image_filename</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">to_sec</span><span class="p">()]</span>
+
+        <span class="c1"># get topic frame id and return list </span>
+        <span class="n">topic_frame_id</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span>
+        <span class="k">return</span> <span class="n">frame_list</span><span class="p">,</span> <span class="n">topic_frame_id</span>
+
+    
+    <span class="k">def</span> <span class="nf">_extract_pointcloud_2_topic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topic_key</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extracts a point cloud topic (ROS message type sensor_msgs/PointCloud2) </span>
+<span class="sd">        from the ROSBag.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            topic_key (str): the topic key (e.g., topic_0) used to identify the portion</span>
+<span class="sd">                of the extraction config data containing the extraction parameters.</span>
+<span class="sd">            output_dir (pathlib.Path): the output directory to write this data to</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: returns a tuple(list, str). The list contains the filenames </span>
+<span class="sd">                and timestamps [filaname (str), timestamp (float)]. The string</span>
+<span class="sd">                contains the frame ID for the topic.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Get topic name and filename template</span>
+        <span class="n">topic_name</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">filename_template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_common_topic_extraction_data</span><span class="p">(</span><span class="n">topic_key</span><span class="p">)</span>
+
+        <span class="c1"># Define variables</span>
+        <span class="n">topic_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bag</span><span class="o">.</span><span class="n">get_message_count</span><span class="p">(</span><span class="n">topic_name</span><span class="p">)</span>
+        <span class="n">frame_list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="n">topic_count</span> <span class="c1"># pre-allocate list memory</span>
+
+        <span class="c1"># Loop through bag</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bag</span><span class="o">.</span><span class="n">read_messages</span><span class="p">(</span><span class="n">topics</span><span class="o">=</span><span class="p">[</span><span class="n">topic_name</span><span class="p">]),</span> <span class="n">total</span><span class="o">=</span><span class="n">topic_count</span><span class="p">)):</span>
+
+            <span class="c1"># Create pointcloud filename</span>
+            <span class="n">timestamp_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">to_sec</span><span class="p">())</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+            <span class="n">pcd_filename</span> <span class="o">=</span> <span class="p">(</span><span class="n">filename_template</span><span class="o">%</span><span class="p">(</span><span class="n">idx</span><span class="p">))</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&lt;ros_timestamp&gt;&quot;</span><span class="p">,</span> <span class="n">timestamp_str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.ply&quot;</span>
+
+            <span class="c1"># Decode and save the point cloud</span>
+            <span class="c1"># o3d_pcd = orh.rospc_to_o3dpc(msg) this throws an error message, not sure why haven&#39;t dug into it</span>
+            <span class="n">o3d_pcd</span> <span class="o">=</span> <span class="n">rospc_to_o3dpc</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">o3d</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">write_point_cloud</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="n">pcd_filename</span><span class="p">),</span> <span class="n">o3d_pcd</span><span class="p">)</span> 
+
+            <span class="c1"># Add point cloud to frame_list</span>
+            <span class="n">frame_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">pcd_filename</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">to_sec</span><span class="p">()]</span>
+
+        <span class="c1"># get topic frame id and return list </span>
+        <span class="n">topic_frame_id</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span>
+        <span class="k">return</span> <span class="n">frame_list</span><span class="p">,</span> <span class="n">topic_frame_id</span>
+
+    
+    <span class="k">def</span> <span class="nf">_extract_navsatfix_topic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topic_key</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">):</span>
+
+        <span class="c1"># Get topic name and filename template</span>
+        <span class="n">topic_name</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_common_topic_extraction_data</span><span class="p">(</span><span class="n">topic_key</span><span class="p">)</span>
+
+        <span class="c1"># Define variables</span>
+        <span class="n">topic_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bag</span><span class="o">.</span><span class="n">get_message_count</span><span class="p">(</span><span class="n">topic_name</span><span class="p">)</span>
+
+        <span class="c1"># Loop through bag and write out csv file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.csv&quot;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
+
+            <span class="c1"># create csvwriter object and write header</span>
+            <span class="n">csvwriter</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">csvfile</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="n">csvwriter</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="s2">&quot;timestamp&quot;</span><span class="p">,</span> <span class="s2">&quot;frame&quot;</span><span class="p">,</span> <span class="s2">&quot;status&quot;</span><span class="p">,</span> <span class="s2">&quot;service&quot;</span><span class="p">,</span> 
+                <span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">,</span> <span class="s2">&quot;altitude&quot;</span><span class="p">,</span> 
+                <span class="s2">&quot;cov00&quot;</span><span class="p">,</span> <span class="s2">&quot;cov01&quot;</span><span class="p">,</span> <span class="s2">&quot;cov02&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;cov10&quot;</span><span class="p">,</span> <span class="s2">&quot;cov11&quot;</span><span class="p">,</span> <span class="s2">&quot;cov12&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;cov20&quot;</span><span class="p">,</span> <span class="s2">&quot;cov21&quot;</span><span class="p">,</span> <span class="s2">&quot;cov22&quot;</span><span class="p">,</span> 
+                <span class="s2">&quot;cov_type&quot;</span> <span class="p">])</span>
+
+            <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bag</span><span class="o">.</span><span class="n">read_messages</span><span class="p">(</span><span class="n">topics</span><span class="o">=</span><span class="p">[</span><span class="n">topic_name</span><span class="p">]),</span> <span class="n">total</span><span class="o">=</span><span class="n">topic_count</span><span class="p">):</span>
+
+                <span class="c1"># Pull out desired data</span>
+                <span class="n">tmp_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">to_sec</span><span class="p">(),</span> <span class="n">msg</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">service</span><span class="p">,</span>
+                    <span class="n">msg</span><span class="o">.</span><span class="n">latitude</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">longitude</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">altitude</span><span class="p">,</span>
+                    <span class="n">msg</span><span class="o">.</span><span class="n">position_covariance</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">msg</span><span class="o">.</span><span class="n">position_covariance</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">msg</span><span class="o">.</span><span class="n">position_covariance</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                    <span class="n">msg</span><span class="o">.</span><span class="n">position_covariance</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">msg</span><span class="o">.</span><span class="n">position_covariance</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">msg</span><span class="o">.</span><span class="n">position_covariance</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                    <span class="n">msg</span><span class="o">.</span><span class="n">position_covariance</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span> <span class="n">msg</span><span class="o">.</span><span class="n">position_covariance</span><span class="p">[</span><span class="mi">7</span><span class="p">],</span> <span class="n">msg</span><span class="o">.</span><span class="n">position_covariance</span><span class="p">[</span><span class="mi">8</span><span class="p">],</span>
+                    <span class="n">msg</span><span class="o">.</span><span class="n">position_covariance_type</span><span class="p">]</span>
+
+                <span class="c1"># Write to file</span>
+                <span class="n">csvwriter</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">tmp_data</span><span class="p">)</span>
+
+
+
+    <span class="k">def</span> <span class="nf">_write_topic_transform_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topic_key</span> <span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">topic_frame_id</span> <span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filelist</span> <span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">output_dir</span> <span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets and writes the transforms for a file list (e.g., returned from _extract_image_topic) to a CSV file. </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            topic_key (str): the topic key (e.g., topic_0) used to identify the portion</span>
+<span class="sd">                of the extraction config data containing the extraction parameters.</span>
+<span class="sd">            topic_frame_id (str): the frame ID of the topic.</span>
+<span class="sd">            filelist (list): the file list containing the filenames and timestamps.</span>
+<span class="sd">            output_dir (pathlib.Path): the output directory to write this data to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">csv_transforms_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">][</span><span class="s1">&#39;transforms&#39;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">csv_transform</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csv_transforms_list</span><span class="p">):</span>
+
+            <span class="c1"># get transform data from extraction config</span>
+            <span class="n">parent_frame</span> <span class="o">=</span> <span class="n">csv_transform</span><span class="p">[</span><span class="s2">&quot;parent_frame&quot;</span><span class="p">]</span>
+
+            <span class="n">child_frame</span> <span class="o">=</span> <span class="n">topic_frame_id</span> <span class="c1"># default to the frame id in the message for the child frame</span>
+            <span class="k">if</span> <span class="s2">&quot;child_frame&quot;</span> <span class="ow">in</span> <span class="n">csv_transform</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">child_frame</span> <span class="o">=</span> <span class="n">csv_transform</span><span class="p">[</span><span class="s2">&quot;child_frame&quot;</span><span class="p">]</span>
+
+            <span class="c1"># check to see if transform frames exist</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bag_transformer</span><span class="o">.</span><span class="n">frame_exists</span><span class="p">(</span><span class="n">parent_frame</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bag_transformer</span><span class="o">.</span><span class="n">frame_exists</span><span class="p">(</span><span class="n">child_frame</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">ERROR! The transform between </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> and </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> does not exist. Cannot write out transform file for topic </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2">.&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">parent_frame</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">][</span><span class="s1">&#39;topic_name&#39;</span><span class="p">]))</span>
+
+                <span class="c1"># remove transfer dict from extraction config so doesn&#39;t get save, then if user tries</span>
+                <span class="c1"># to rerun the extraction this data is seen as not having been extracted yet</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">extraction_config</span><span class="p">[</span><span class="n">topic_key</span><span class="p">][</span><span class="s1">&#39;transforms&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+                <span class="k">continue</span> <span class="c1"># move onto next transform</span>
+
+            <span class="c1"># get transform selection method type and limits</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="s2">&quot;interpolate&quot;</span> <span class="c1"># default</span>
+            <span class="k">if</span> <span class="s2">&quot;selection_method&quot;</span> <span class="ow">in</span> <span class="n">csv_transform</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">method</span> <span class="o">=</span> <span class="n">csv_transform</span><span class="p">[</span><span class="s2">&quot;selection_method&quot;</span><span class="p">]</span>
+
+            <span class="n">lookup_limit</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># default</span>
+            <span class="k">if</span> <span class="s2">&quot;lookup_limit&quot;</span> <span class="ow">in</span> <span class="n">csv_transform</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">lookup_limit</span> <span class="o">=</span> <span class="n">csv_transform</span><span class="p">[</span><span class="s2">&quot;lookup_limit&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lookup_limit</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">lookup_limit</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+                        <span class="n">lookup_limit</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The value for the lookup limit parameter must be NULL, None or a float. It cannot be a string.&quot;</span><span class="p">)</span>
+
+            <span class="n">chain_limit</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># default</span>
+            <span class="k">if</span> <span class="s2">&quot;chain_limit&quot;</span> <span class="ow">in</span> <span class="n">csv_transform</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">chain_limit</span> <span class="o">=</span> <span class="n">csv_transform</span><span class="p">[</span><span class="s2">&quot;chain_limit&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">chain_limit</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">chain_limit</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+                        <span class="n">chain_limit</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The value for the chain limit parameter must be NULL, None or a float. It cannot be a string.&quot;</span><span class="p">)</span>
+
+            <span class="c1"># get transform for each</span>
+            <span class="n">filelist_with_data</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">filelist</span><span class="p">)</span> <span class="c1"># pre-allocate memory</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">frame</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tqdm</span><span class="p">(</span><span class="n">filelist</span><span class="p">)):</span>
+                <span class="n">timestamp</span><span class="p">,</span> <span class="n">chain_differential</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bag_transformer</span><span class="o">.</span><span class="n">lookup_transform</span><span class="p">(</span><span class="n">parent_frame</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">,</span> <span class="n">frame</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">lookup_limit</span><span class="o">=</span><span class="n">lookup_limit</span><span class="p">,</span> <span class="n">chain_limit</span><span class="o">=</span><span class="n">chain_limit</span><span class="p">)</span>
+                <span class="n">filelist_with_data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">frame</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">frame</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">transform</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">chain_differential</span><span class="p">]</span>
+
+            <span class="c1"># set output destination and filename</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">topic_key</span> <span class="o">+</span> <span class="s2">&quot;_</span><span class="si">%d</span><span class="s2">.csv&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="c1"># default</span>
+            <span class="k">if</span> <span class="s2">&quot;filename&quot;</span> <span class="ow">in</span> <span class="n">csv_transform</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">csv_transform</span><span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.csv&quot;</span>
+
+            <span class="c1"># default output directory is same as where the topic data is saved</span>
+            <span class="k">if</span> <span class="s2">&quot;output_destination&quot;</span> <span class="ow">in</span> <span class="n">csv_transform</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">output_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_output_dir</span> <span class="o">/</span> <span class="n">csv_transform</span><span class="p">[</span><span class="s2">&quot;output_destination&quot;</span><span class="p">]</span>
+                <span class="n">output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># open csv file</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
+
+                <span class="c1"># create csvwriter object and write header</span>
+                <span class="n">csvwriter</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">csvfile</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+                <span class="n">csvwriter</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="s2">&quot;filename&quot;</span><span class="p">,</span> <span class="s2">&quot;parent_frame&quot;</span><span class="p">,</span> <span class="s2">&quot;child_frame&quot;</span><span class="p">,</span> <span class="s2">&quot;frame_timestamp&quot;</span><span class="p">,</span> <span class="s2">&quot;pos_x&quot;</span><span class="p">,</span> <span class="s2">&quot;pos_y&quot;</span><span class="p">,</span> <span class="s2">&quot;pos_z&quot;</span><span class="p">,</span> <span class="s2">&quot;quat_w&quot;</span><span class="p">,</span> <span class="s2">&quot;quat_x&quot;</span><span class="p">,</span> <span class="s2">&quot;quat_y&quot;</span><span class="p">,</span> <span class="s2">&quot;quat_z&quot;</span><span class="p">,</span> <span class="s2">&quot;transform_timestamp&quot;</span><span class="p">,</span> <span class="s2">&quot;chain_differential&quot;</span><span class="p">,</span> <span class="s2">&quot;status&quot;</span><span class="p">])</span>
+
+                <span class="c1"># Write transform list</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">filelist_with_data</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">==</span> <span class="n">sm</span><span class="o">.</span><span class="n">pose3d</span><span class="o">.</span><span class="n">SE3</span><span class="p">:</span> <span class="c1"># make sure transform isn&#39;t none</span>
+                        <span class="n">position</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">A</span><span class="p">[:</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="n">quat</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">r2q</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">A</span><span class="p">[:</span><span class="mi">3</span><span class="p">,:</span><span class="mi">3</span><span class="p">])</span>
+                        <span class="n">transform_timestamp</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+                        <span class="n">chain_differential</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">position</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;None&quot;</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span>
+                        <span class="n">quat</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;None&quot;</span><span class="p">]</span><span class="o">*</span><span class="mi">4</span>
+                        <span class="n">transform_timestamp</span> <span class="o">=</span> <span class="s2">&quot;None&quot;</span>
+                        <span class="n">chain_differential</span> <span class="o">=</span> <span class="s2">&quot;None&quot;</span>
+
+                    <span class="n">csvwriter</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">parent_frame</span><span class="p">,</span> <span class="n">child_frame</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> 
+                    <span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">position</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> 
+                    <span class="n">quat</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">quat</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">quat</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">quat</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> 
+                    <span class="n">transform_timestamp</span><span class="p">,</span> <span class="n">chain_differential</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">])</span></div>
+    
+
+<span class="c1">########################</span>
+<span class="c1">### PUBLIC FUNCTIONS ###</span>
+<span class="c1">########################</span>
+
+
+<span class="c1">#########################</span>
+<span class="c1">### PRIVATE FUNCTIONS ###</span>
+<span class="c1">#########################</span>
+
+<span class="c1"># the function rospc_to_o3dpc in the open3d_ros_helper </span>
+<span class="c1"># module throws an error for some reason. A direct copy</span>
+<span class="c1"># of the function doesn&#39;t throw an error. Here is a similar</span>
+<span class="c1"># version of the function but with some slight adjustments to </span>
+<span class="c1"># improve readability. ros_numpy is required for this function</span>
+<span class="kn">import</span> <span class="nn">ros_numpy</span>
+<span class="k">def</span> <span class="nf">rospc_to_o3dpc</span><span class="p">(</span><span class="n">rospc</span><span class="p">,</span> <span class="n">remove_nans</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; covert ros point cloud to open3d point cloud</span>
+<span class="sd">    Args: </span>
+<span class="sd">        rospc (sensor.msg.PointCloud2): ros point cloud message</span>
+<span class="sd">        remove_nans (bool): if true, ignore the NaN points. Defaults to True.</span>
+<span class="sd">    Returns: </span>
+<span class="sd">        o3dpc (open3d.geometry.PointCloud): open3d point cloud</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">field_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">rospc</span><span class="o">.</span><span class="n">fields</span><span class="p">]</span>
+    <span class="n">is_rgb</span> <span class="o">=</span> <span class="s1">&#39;rgb&#39;</span> <span class="ow">in</span> <span class="n">field_names</span>
+    
+    <span class="c1"># Convert to array and remove nans</span>
+    <span class="n">cloud_array</span> <span class="o">=</span> <span class="n">ros_numpy</span><span class="o">.</span><span class="n">point_cloud2</span><span class="o">.</span><span class="n">pointcloud2_to_array</span><span class="p">(</span><span class="n">rospc</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">remove_nans</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">cloud_array</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">])</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">cloud_array</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">])</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">cloud_array</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">])</span>
+        <span class="n">cloud_array</span> <span class="o">=</span> <span class="n">cloud_array</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+
+    <span class="c1"># Get xyz points and create point cloud</span>
+    <span class="n">cloud_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">cloud_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">cloud_pts</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cloud_array</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span>
+    <span class="n">cloud_pts</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cloud_array</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span>
+    <span class="n">cloud_pts</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">cloud_array</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">]</span>
+    <span class="n">o3dpc</span> <span class="o">=</span> <span class="n">o3d</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">PointCloud</span><span class="p">(</span><span class="n">o3d</span><span class="o">.</span><span class="n">utility</span><span class="o">.</span><span class="n">Vector3dVector</span><span class="p">(</span><span class="n">cloud_pts</span><span class="p">))</span>
+
+    <span class="c1"># Point colours</span>
+    <span class="k">if</span> <span class="n">is_rgb</span><span class="p">:</span>
+        <span class="n">rgb_npy</span> <span class="o">=</span> <span class="n">cloud_array</span><span class="p">[</span><span class="s1">&#39;rgb&#39;</span><span class="p">]</span>
+        <span class="n">rgb_npy</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint32</span>
+        <span class="n">cloud_cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">cloud_pts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+        <span class="n">cloud_cols</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">((</span><span class="n">rgb_npy</span> <span class="o">&gt;&gt;</span> <span class="mi">16</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mi">255</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+        <span class="n">cloud_cols</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">((</span><span class="n">rgb_npy</span> <span class="o">&gt;&gt;</span> <span class="mi">8</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mi">255</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+        <span class="n">cloud_cols</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rgb_npy</span> <span class="o">&amp;</span> <span class="mi">255</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+
+        <span class="c1"># Make sure colours between 0 and 1</span>
+        <span class="k">if</span> <span class="n">cloud_cols</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">clouds_cols</span> <span class="o">=</span> <span class="n">cloud_cols</span> <span class="o">/</span> <span class="mf">255.0</span> 
+        <span class="n">o3dpc</span><span class="o">.</span><span class="n">colors</span> <span class="o">=</span> <span class="n">o3d</span><span class="o">.</span><span class="n">utility</span><span class="o">.</span><span class="n">Vector3dVector</span><span class="p">(</span><span class="n">clouds_cols</span><span class="p">)</span>
+
+    <span class="c1"># Return</span>
+    <span class="k">return</span> <span class="n">o3dpc</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, James Mount.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

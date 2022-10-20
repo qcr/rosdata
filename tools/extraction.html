@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Extraction Tool &mdash; ROSData 0.1.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Information Tool" href="information.html" />
+    <link rel="prev" title="Python Module" href="../getting_started/py_module.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ROSData
+          </a>
+              <div class="version">
+                0.1.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/cl_tools.html">Command Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/py_module.html">Python Module</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tools:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Extraction Tool</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#extraction-config-file">Extraction Config File</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#arguments">Arguments</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#transforms">Transforms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#camera-info">Camera Info</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#topics">Topics</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#a-complete-example">A Complete Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="information.html">Information Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Visualization Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manipulation.html">Manipulation Tool</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Python Module Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Common Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html#other-utilities">Other Utilities</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ROSData</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Extraction Tool</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/tools/extraction.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="extraction-tool">
+<h1>Extraction Tool<a class="headerlink" href="#extraction-tool" title="Permalink to this headline"></a></h1>
+<p>The Extraction Tool is the core of ROSData. It truly was the main reason why we developed the ROSData tools. To make the extraction of data from ROSBags as easy as possible and not require the creation of a script for every different dataset collected.</p>
+<p>The extraction tool requires you to write simple extraction config file. This config file is a YAML file defining the data you want extracted and to which folder you wanted it extracted. This means once you have created an extraction config file for a specific robot, platform, or ROS system, you can easily reuse that one config file and share it with your colleagues. We find this works really well with students and researchers who aren’t familiar with ROS and need to get a project moving quickly. We can quickly teach them how to turn on the machine and how to record a ROSBag, and then simply provide them with the YAML file for extraction.</p>
+<section id="extraction-config-file">
+<h2>Extraction Config File<a class="headerlink" href="#extraction-config-file" title="Permalink to this headline"></a></h2>
+<p>The extraction config file is a YAML file. This file is used to specify what data should be extracted from a ROSBag and where it should be extracted. Currently only three types of high level keys are supported by the tool. These keys are:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">transorm_&lt;id&gt;</span></code>;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">camera_info_&lt;id&gt;</span></code>; and</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">topic_&lt;id&gt;</span></code>.</p></li>
+</ul>
+</div></blockquote>
+<p>The <code class="code docutils literal notranslate"><span class="pre">&lt;id&gt;</span></code> is simply a unique number defined by you. Each key is used to extract data in a specific format for a specific set of ROS message types. The message types associated with each key are:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 74%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Extraction Config Key</strong></p></th>
+<th class="head"><p><strong>Associated ROS Message Types</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">transform_&lt;id&gt;</span></code></p></td>
+<td><p>tf2_msgs/TFMessage</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">camera_info_&lt;id&gt;</span></code></p></td>
+<td><p>sensor_msgs/CameraInfo</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">topic_&lt;id&gt;</span></code></p></td>
+<td><ul class="simple">
+<li><p>sensor_msgs/CompressedImage</p></li>
+<li><p>sensor_msgs/Image</p></li>
+<li><p>sensor_msgs/PointCloud2</p></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>You can extract as many of each message type from your ROSBag by simply utilising unique IDs. For example, if you wish to extract a CSV file for the transform <code class="code docutils literal notranslate"><span class="pre">map</span></code> to <code class="code docutils literal notranslate"><span class="pre">odom</span></code>, as well as <code class="code docutils literal notranslate"><span class="pre">map</span></code> to <code class="code docutils literal notranslate"><span class="pre">base_link</span></code> you could simply have two transform keys (e.g., <code class="code docutils literal notranslate"><span class="pre">transform_0</span></code> and <code class="code docutils literal notranslate"><span class="pre">transform_1</span></code>), one for each. If your ROS system has a disconnected transform tree resulting in multiple tree roots, can specify the tree root in the config file using the key <code class="code docutils literal notranslate"><span class="pre">tree_root</span></code>.</p>
+<section id="arguments">
+<h3>Arguments<a class="headerlink" href="#arguments" title="Permalink to this headline"></a></h3>
+<section id="transforms">
+<h4>Transforms<a class="headerlink" href="#transforms" title="Permalink to this headline"></a></h4>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">transform_&lt;id&gt;</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">parent_frame</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;parent_frame&gt;</span><span class="w"> </span><span class="c1"># required - used to specify the parent/origin frame</span><span class="w"></span>
+<span class="w">    </span><span class="nt">child_frame</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;child_frame&gt;</span><span class="w"> </span><span class="c1"># required - used to specify a child/destination frame</span><span class="w"></span>
+<span class="w">    </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;filename&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a filename, the file extension .csv will be appended. Defaults to transform_&lt;id&gt;.csv</span><span class="w"></span>
+<span class="w">    </span><span class="nt">output_destination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;relative_destination&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a directory relative to the root output directory to save the CSV file. Defaults to the root output directory.</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+<section id="camera-info">
+<h4>Camera Info<a class="headerlink" href="#camera-info" title="Permalink to this headline"></a></h4>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">camera_info_&lt;id&gt;</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">topic_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;camera_info_topic&gt;</span><span class="w"> </span><span class="c1"># required - used to specify the name ofthe camera info topic</span><span class="w"></span>
+<span class="w">    </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;filename&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a filename, the file extension .yaml will be appended. Defaults to camera_info_&lt;id&gt;.csv</span><span class="w"></span>
+<span class="w">    </span><span class="nt">output_destination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;relative_destination&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a directory relative to the root output directory to save the YAML file. Defaults to the root output directory.</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+<section id="topics">
+<h4>Topics<a class="headerlink" href="#topics" title="Permalink to this headline"></a></h4>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">topic_&lt;id&gt;</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">topic_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;ros_topic_name&gt;</span><span class="w"> </span><span class="c1"># required - used to specify the name of the topic</span><span class="w"></span>
+<span class="w">    </span><span class="nt">message_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;ros_message_type&gt;</span><span class="w"> </span><span class="c1"># required - determines the data extraction method</span><span class="w"></span>
+<span class="w">    </span><span class="nt">output_destination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;relative_destination&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a directory relative to the root output directory to save the topic data. Defaults to the root_output_directory/topic_&lt;id&gt;.</span><span class="w"></span>
+<span class="w">    </span><span class="nt">filename_template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;filename_template&gt;</span><span class="w"> </span><span class="c1"># optional - used as a filename template string (e.g. `image_%06d-&lt;ros_timestamp&gt;`), the appropriate file_extenstion will be automatically appended. Only a single topic index and ROS timestamp can be included in the template. Use the Python `%d` string formatter, or derivate of, to specify the topic index and use `&lt;ros_timestamp&gt;` to include the ROS topic timestamp as a string which will be in the format `&lt;seconds&gt;_&lt;nanaseconds&gt;`. Defaults to `frame_%06d`</span><span class="w"></span>
+<span class="w">    </span><span class="nt">transforms</span><span class="p">:</span><span class="w"> </span><span class="c1"># optional - only required if wish to output a CSV(s) containing transform data associated with the topic. Can specify multiple transforms to generate multiple CSV files all with different parameters</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">parent_frame</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;parent_frame_1&gt;</span><span class="w"> </span><span class="c1"># required - used to specify the parent/origin frame</span><span class="w"></span>
+<span class="w">        </span><span class="nt">child_frame</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;child_frame&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify the child/destination frame. Defaults to the frame ID stored in the topic</span><span class="w"></span>
+<span class="w">        </span><span class="nt">selection_method</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;method_1&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify the method to determine the transform associated with each message within the topic. Options are exact, recent, nearest, and interpolate. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.</span><span class="w"></span>
+<span class="w">        </span><span class="nt">lookup_limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;seconds_1&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a lookup limit when determining the transform. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.</span><span class="w"></span>
+<span class="w">        </span><span class="nt">chain_limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;seconds_1&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a transform chain differential limit when determining the transform. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.</span><span class="w"></span>
+<span class="w">        </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;filename_1&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a filename, the file extension .csv will be appended. Defaults to topic_&lt;id&gt;.csv</span><span class="w"></span>
+<span class="w">        </span><span class="nt">output_destination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;relative_destination_1&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a directory relative to the root output directory to save the CSV file. Defaults to the root output directory.</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">parent_frame</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;parent_frame_2&gt;</span><span class="w"> </span><span class="c1"># required - used to specify the parent/origin frame</span><span class="w"></span>
+<span class="w">        </span><span class="nt">child_frame</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;child_frame&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify the child/destination frame. Defaults to the frame ID stored in the topic</span><span class="w"></span>
+<span class="w">        </span><span class="nt">selection_method</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;method_2&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify the method to determine the transform associated with each message within the topic. Options are exact, recent, nearest, and interpolate. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.</span><span class="w"></span>
+<span class="w">        </span><span class="nt">lookup_limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;seconds_2&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a lookup limit when determining the transform. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.</span><span class="w"></span>
+<span class="w">        </span><span class="nt">chain_limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;seconds_2&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a transform chain differential limit when determining the transform. See lookup_transform in rosdata/rosbag_transforms.py for more details on methods.</span><span class="w"></span>
+<span class="w">        </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;filename_2&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a filename, the file extension .csv will be appended. Defaults to topic_&lt;id&gt;.csv</span><span class="w"></span>
+<span class="w">        </span><span class="nt">output_destination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;relative_destination_2&gt;</span><span class="w"> </span><span class="c1"># optional - used to specify a directory relative to the root output directory to save the CSV file. Defaults to the root output directory.</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="a-complete-example">
+<h3>A Complete Example<a class="headerlink" href="#a-complete-example" title="Permalink to this headline"></a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">treet_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">map</span><span class="w"></span>
+
+<span class="nt">transform_0</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">parent_frame</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">map</span><span class="w"></span>
+<span class="w">    </span><span class="nt">child_frame</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">base_link</span><span class="w"></span>
+<span class="w">    </span><span class="nt">output_destination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data_files</span><span class="w"></span>
+<span class="w">    </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">poses</span><span class="w"></span>
+
+<span class="nt">camera_info_0</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">topic_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/pylon_camera_node/camera_info</span><span class="w"></span>
+<span class="w">    </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">camera_info</span><span class="w"></span>
+<span class="w">    </span><span class="nt">output_destination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data_files</span><span class="w"></span>
+
+<span class="nt">topic_0</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">topic_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/os1_cloud_node/points</span><span class="w"></span>
+<span class="w">    </span><span class="nt">message_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sensor_msgs/PointCloud2</span><span class="w"></span>
+<span class="w">    </span><span class="nt">filename_template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pcd_%06d-&lt;ros_timestamp&gt;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">output_destination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pointclouds</span><span class="w"></span>
+<span class="w">    </span><span class="nt">transform</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">parent_frame</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">map</span><span class="w"></span>
+<span class="w">        </span><span class="nt">child_frame</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ouster1/os1_lidar</span><span class="w"></span>
+<span class="w">        </span><span class="nt">selection_method</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">interpolate</span><span class="w"></span>
+<span class="w">        </span><span class="nt">lookup_limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span><span class="w"></span>
+<span class="w">        </span><span class="nt">chain_limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span><span class="w"></span>
+<span class="w">        </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pointclouds_map_poses</span><span class="w"></span>
+<span class="w">        </span><span class="nt">output_destination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data_files</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">parent_frame</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">base_link</span><span class="w"></span>
+<span class="w">        </span><span class="nt">child_frame</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ouster1/os1_lidar</span><span class="w"></span>
+<span class="w">        </span><span class="nt">selection_method</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">interpolate</span><span class="w"></span>
+<span class="w">        </span><span class="nt">lookup_limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">None</span><span class="w"></span>
+<span class="w">        </span><span class="nt">chain_limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">None</span><span class="w"></span>
+<span class="w">        </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pointclouds_baselink_poses</span><span class="w"></span>
+<span class="w">        </span><span class="nt">output_destination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data_files</span><span class="w"></span>
+
+<span class="nt">topic_1</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">topic_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/pylon_camera_node/image_raw</span><span class="w"></span>
+<span class="w">    </span><span class="nt">message_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sensor_msgs/Image</span><span class="w"></span>
+<span class="w">    </span><span class="nt">filename_template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">image_%06d-&lt;ros_timestamp&gt;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">output_destination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">images</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../getting_started/py_module.html" class="btn btn-neutral float-left" title="Python Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="information.html" class="btn btn-neutral float-right" title="Information Tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, James Mount.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
