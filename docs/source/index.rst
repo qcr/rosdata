@@ -40,8 +40,8 @@ It also provides Python utilities to help you utilise the extracted data within 
    
    reference/index
 
-.. .. toctree::
-..    :hidden:
-..    :caption: Navigation
+.. toctree::
+   :hidden:
+   :caption: Other Resources
 
-..    genindex
+   other/depth_images_info

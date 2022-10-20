@@ -29,11 +29,11 @@ Type in :code:`-h` or :code:`--help` to get a list of the available tools or the
 Example
 -----------------
 
-We have provided a complete extraction example. Download the :download:`example (50MB) <../assets/example.zip>` and extract it to any location. Then run the following commands:
+A complete extraction example is provided. Download the :download:`example (50MB) <../assets/example.zip>` and extract it to any location. Then run the following commands:
 
 .. code-block:: bash
 
-    cd <path_to_extracted_example>
+    cd <path/to/extracted/example>
     rosdata extract example.bag example_extraction_config.yaml data
 
-This example is extracting the data contained within the :code:`example.bag` using the specifications contained within the :code:`example_extraction_config.yaml` and outputting the extracted data into a folder located at :code:`<path_to_extracted_example>/data`. 
+This example is extracting the data contained within the :code:`example.bag` using the specifications contained within the :code:`example_extraction_config.yaml` and outputting the extracted data into a folder located at :code:`<path/to/extracted/example>/data`. 
