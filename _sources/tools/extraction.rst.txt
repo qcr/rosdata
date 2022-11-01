@@ -117,7 +117,7 @@ A Complete Example
 
 .. code-block:: yaml
 
-    treet_root: map
+    tree_root: map
 
     transform_0:
         parent_frame: map
@@ -135,7 +135,7 @@ A Complete Example
         message_type: sensor_msgs/PointCloud2
         filename_template: pcd_%06d-<ros_timestamp>
         output_destination: pointclouds
-        transform:
+        transforms:
             - parent_frame: map
             child_frame: ouster1/os1_lidar
             selection_method: interpolate
